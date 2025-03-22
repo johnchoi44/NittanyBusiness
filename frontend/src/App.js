@@ -4,8 +4,8 @@ import Login from "./components/Login";
 
 function App() {
   return (
-    <div className="App">
-      <h1>NittanyBusiness</h1>
+    <div className='loginCard'>
+      <h1 className='loginTitle'>NittanyBusiness</h1>
       <Login />
     </div>
   );

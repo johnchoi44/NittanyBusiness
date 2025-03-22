@@ -36,3 +36,83 @@
     transform: rotate(360deg);
   }
 }
+
+.loginDiv {
+  display: flex;
+  flex-direction: column;  
+  align-items: center;     
+  justify-content: center;             
+  width: 50%;
+  margin: 0 auto;   
+  padding-bottom: 30px;    
+}
+
+.loginCard {
+  text-align: center;
+  border: 2px solid #ccc; 
+  border-radius: 12px;         
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);  
+  padding: 10px;              
+  margin: 0 auto;                
+  width: 30%;
+  margin-top: 175px;
+}
+
+.loginTitle {
+  padding: 20px;
+  color: rgba(30, 64, 124);
+  font-size: 40px;
+}
+
+.input {
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+/* Focus effect */
+.input:focus {
+  border-color:  rgba(30, 64, 124);
+  background-color: #fff; 
+}
+
+/* Style for the login button */
+.login-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: rgba(30, 64, 124); /* Green background */
+  color: white;
+  border: none;
+  border-radius: 8px; /* Rounded corners */
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s, transform 0.2s ease;
+}
+
+/* Hover effect */
+.login-btn:hover {
+  background-color: rgba(30, 64, 250); 
+  transform: translateY(-2px); 
+}
+
+/* Focus effect */
+.login-btn:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(0, 128, 0, 0.2); 
+}
+
+/* Active (pressed) effect */
+.login-btn:active {
+  transform: translateY(1px); 
+  box-shadow: 0 2px 4px rgba(0, 128, 0, 0.2); 
+}
+
+
+
