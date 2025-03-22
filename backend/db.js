@@ -1,10 +1,15 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const csv = require("csv-parser");
+const fs = require("fs");
+const bcrypt = require("bcrypt"); // Import bcrypt for password hashing
+
 
 const db = new sqlite3.Database(path.resolve(__dirname, "nittanybusiness.db"), (err) => {
     if (err) return console.error("DB Error:", err.message);
     console.log("Connected to SQLite database.");
 });
+
 
 // Create table
 db.run(`
@@ -134,5 +139,68 @@ db.run(`
         FOREIGN KEY (order_id) REFERENCES Orders(order_id)
     )
 `);
+
+db.all(`SELECT name FROM sqlite_master WHERE type='table'`, (err, tables) => {
+    if (err) {
+        console.error("Error fetching tables:", err.message);
+    } else {
+        console.log("Tables in the database:");
+        tables.forEach((table) => console.log(table.name));
+        populateTables();
+    }
+});
+
+// Function to hash password using bcrypt
+async function hashPassword(password) {
+    const saltRounds = 10; // Adjust the salt rounds for bcrypt
+    return bcrypt.hash(password, saltRounds); // Returns a Promise with the hashed password
+}
+
+// Function to populate tables from CSV files
+async function populateTables() {
+    console.log("Populating tables...");
+
+    const promises = [];
+    fs.createReadStream(path.resolve(__dirname, "data/users.csv"))
+        .pipe(csv())
+        .on("data", async (row) => {
+            // Trim any leading/trailing spaces from row keys
+            row = Object.fromEntries(
+                Object.entries(row).map(([key, value]) => [key.trim(), value])
+            );
+            try {
+                const hashedPassword = await hashPassword(row.password); // Hash the password
+                // Use Promise to ensure the insertions complete
+                const promise = new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO Users (email, password_hash) VALUES (?, ?)`,
+                        [row.email, hashedPassword],
+                        (err) => {
+                            if (err) {
+                                console.error("Error inserting into Users table:", err.message);
+                                reject(err); // Reject if there's an error
+                            } else {
+                                resolve(); // Resolve when insertion is successful
+                            }
+                        }
+                    );
+                });
+                promises.push(promise);
+            } catch (err) {
+                console.error("Error hashing password:", err);
+            }
+        })
+        .on("end", async () => {
+            try {
+                // Wait for all insertions to complete
+                await Promise.all(promises);
+                console.log("Users table populated with securely hashed passwords.");
+            } catch (err) {
+                console.error("Error inserting users:", err);
+            }
+        });
+}
+
+
 
 module.exports = db;

@@ -34,12 +34,21 @@ app.post("/login", (req, res) => {
     const query = `SELECT * FROM Users WHERE email = ?`;
     db.get(query, [email], async (err, user) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (!user) return res.status(401).json({ message: "Invalid credentials" });
+        if (!user) return res.status(401).json({ message: "Invalid username" });
 
-        const match = await bcrypt.compare(password, user.password_hash);
-        if (!match) return res.status(401).json({ message: "Invalid credentials" });
+        try {
+            const match = await bcrypt.compare(password, user.password_hash);
+            console.log("Password match result:", match); // Debug log
+            
+            if (!match) {
+                return res.status(401).json({ message: "Invalid password" });
+            }
+            res.json({ message: "Login successful" });
 
-        res.json({ message: "Login successful" });
+        } catch (error) {
+            console.error("Error comparing passwords:", error);  // Catch bcrypt errors
+            return res.status(500).json({ error: "Internal server error" });
+        }
     });
 });
 
