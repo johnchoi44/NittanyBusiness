@@ -6,4 +6,4 @@
 
 ### Starting
 - delete the nittanybusiness.db file (it will be regenerated)
-- run "node server.db" to start the server and populate the db
+- run "node server.js" to start the server and populate the db

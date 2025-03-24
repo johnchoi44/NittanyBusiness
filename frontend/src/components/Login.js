@@ -16,7 +16,7 @@ const Login = () => {
                 email,
                 password,
             });
-            navigate("/");
+            navigate("/home");
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
         }

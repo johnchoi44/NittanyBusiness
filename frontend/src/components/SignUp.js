@@ -17,7 +17,7 @@ const SignUp = () => {
                 password,
             });
             setMessage(`Welcome ${res.data.user_type}! User ID: ${res.data.user_id}`);
-            navigate("/login");
+            navigate("/");
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
         }
@@ -33,7 +33,7 @@ const SignUp = () => {
                 <button className="login-btn" type="submit">Sign Up</button>
             </form>
             <p>{message}</p>
-            <p>Already a member? <button onClick={() => navigate("/login")}>Login</button></p>
+            <p>Already a member? <button onClick={() => navigate("/")}>Login</button></p>
         </div>
     );
 };
