@@ -8,36 +8,35 @@ CMPSC 431 Database Management Project
 
 
 ## Project Structure
-The code is organized into three main modules:
+The code is organized into two main modules:
 
 1. **frontend/**: Frontend
 2. **backend/**: Backend
-3. **.idea/**: Data Source
 
 ~~~
 ├── backend/
-│   ├── data/                    #
-│   ├── README.md                # 
-│   ├── db.js                    # 
-│   ├── package-lock.json        # 
-│   ├── package.json             # 
-│   └── server.js                # 
+│   ├── data/                    # Folder to store all CSV data files for import
+│   ├── README.md                # Documentation for backend setup and usage
+│   ├── db.js                    # Handles SQLite database connection and exports the db
+│   ├── package-lock.json        
+│   ├── package.json             # Defines backend dependencies and scripts
+│   └── server.js                # Main server file
 ├── frontend/
-│   ├── public/                  #
-│   ├── src/                     #
-│   │   ├── components/          #
-│   │   │   ├── Home.js          #
-│   │   │   ├── Login.js         #
-│   │   │   └── SignUp.js        #
-│   │   ├── App.css              #
-│   │   ├── App.js               #
-│   │   ├── index.css            #
-│   │   └── index.js             #
-│   ├── README.md                # 
+│   ├── public/                  # Statis assets
+│   ├── src/                     # React source files
+│   │   ├── components/          # React component files
+│   │   │   ├── Home.js          # Homepage component
+│   │   │   ├── Login.js         # User login form component
+│   │   │   └── SignUp.js        # User registration form component
+│   │   ├── App.css              # Global styles for frontend app
+│   │   ├── App.js               # Root component
+│   │   ├── index.css            # Global styles
+│   │   └── index.js             # Main entry point that renders the React app
+│   ├── README.md                # Documentation for frontend
 │   ├── package-lock.json        # 
-│   └── package.json             # 
+│   └── package.json             # Defines frontend dependencies and scripts
 ├── .idea/
-└── README.md                    # 
+└── README.md                    # Main documentation for the entire project
 ~~~
 
 
@@ -45,6 +44,7 @@ The code is organized into three main modules:
 ## Usage
 
 ### Quick Start
+Install all required dependecies
 ```
 cd frontend
 npm start
