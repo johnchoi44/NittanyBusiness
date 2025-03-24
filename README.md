@@ -5,7 +5,16 @@ CMPSC 431 Database Management Project
 
 * node
 * sqlite3
-
+* bcrypt
+* cors
+* csv-parser
+* dotenv
+* express
+* react-router-dom
+* axios
+* react
+* react-dom
+* react-scripts
 
 ## Project Structure
 The code is organized into two main modules:
@@ -44,7 +53,7 @@ The code is organized into two main modules:
 ## Usage
 
 ### Quick Start
-Install all required dependecies
+Install all required dependencies
 ```
 cd frontend
 npm start
