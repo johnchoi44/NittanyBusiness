@@ -41,6 +41,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "/Applications/PyCharm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
     "vue.rearranger.settings.migration": "true"
   },
   "keyToStringList": {
@@ -51,6 +52,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/frontend/public" />
       <recent name="$PROJECT_DIR$/backend" />
     </key>
   </component>
@@ -71,7 +73,7 @@
       <option name="presentableId" value="Default" />
       <updated>1742508916999</updated>
       <workItem from="1742508918067" duration="4688000" />
-      <workItem from="1742587929619" duration="8940000" />
+      <workItem from="1742587929619" duration="12783000" />
     </task>
     <servers />
   </component>
