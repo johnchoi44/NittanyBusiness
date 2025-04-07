@@ -63,3 +63,20 @@ cd backend
 node server.js
 
 ```
+
+### SQL code to merge datasets
+```angular2html
+ALTER TABLE Users ADD COLUMN user_type TEXT;
+
+UPDATE Users
+SET user_type = (
+    SELECT GROUP_CONCAT(user_type, ', ')FROM (
+        SELECT b.user_type FROM Buyer b WHERE b.email = Users.email
+        UNION
+        SELECT s.user_type FROM Sellers s WHERE s.email = Users.email
+        UNION
+        SELECT h.user_type FROM Helpdesk h WHERE h.email = Users.email
+    )
+);
+
+```

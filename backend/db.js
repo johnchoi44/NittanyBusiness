@@ -140,16 +140,8 @@ db.run(`
     )
 `);
 
-// Populate the Users table with hashed password. (Commented out after initializing the db)
-// db.all(`SELECT name FROM sqlite_master WHERE type='table'`, (err, tables) => {
-//     if (err) {
-//         console.error("Error fetching tables:", err.message);
-//     } else {
-//         console.log("Tables in the database:");
-//         tables.forEach((table) => console.log(table.name));
-//         populateTables();
-//     }
-// });
+// ls
+
 
 // Function to hash password using bcrypt
 async function hashPassword(password) {
