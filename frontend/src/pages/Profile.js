@@ -4,7 +4,7 @@ import NavBar from "../components/NavBar";
 const Home = () => {
     
     return (
-        <div>
+        <div className="page-div">
             <NavBar />
         </div>
     );

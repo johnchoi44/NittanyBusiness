@@ -122,5 +122,10 @@
   text-align: center;          
 }
 
+.page-div {
+  display: flex;
+  flex-direction: column;
+}
+
 
 
