@@ -10,6 +10,7 @@
     height: 40px;
     background-color: rgba(30, 64, 124);
     transition: transform 0.3s ease-in-out;
+    z-index: 100;
 }
 
 .nav-body.hidden {

@@ -9,6 +9,16 @@
     border-radius: 10px;
     width: 250px;
     height: 350px;
+    transition: transform 0.3s ease, cursor 0.2s ease;
+}
+
+.product-card-div:hover {
+    cursor: pointer; /* Changes the cursor to a pointer */
+    transform: scale(1.015); /* Scales the element by 10% */
+}
+
+.product-card-div:active {
+    transform: scale(1.00); /* Scales the element by 10% */
 }
 
 .meta-data-div {
