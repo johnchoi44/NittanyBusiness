@@ -33,3 +33,11 @@
     padding: 0 90px 0 90px;
     margin: auto;
 }
+
+.loading {
+    font-size: 50px;
+    color:grey;
+    text-align: center;
+    margin: auto;
+    padding-top: 50px;
+}

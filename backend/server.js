@@ -10,22 +10,22 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-// // Register
-// app.post("/register", async (req, res) => {
-//     const { email, password, user_type } = req.body;
-//     const hashed = await bcrypt.hash(password, 10);
-//
-//     const stmt = `INSERT INTO users (email, password_hash, user_type) VALUES (?, ?, ?)`;
-//     db.run(stmt, [email, hashed, user_type], function (err) {
-//         if (err) {
-//             if (err.message.includes("UNIQUE constraint")) {
-//                 return res.status(409).json({ message: "Email already exists" });
-//             }
-//             return res.status(500).json({ error: err.message });
-//         }
-//         res.status(201).json({ message: "User registered", user_id: this.lastID });
-//     });
-// });
+// Register
+app.post("/register", async (req, res) => {
+    const { email, password, user_type } = req.body;
+    const hashed = await bcrypt.hash(password, 10);
+
+    const stmt = `INSERT INTO users (email, password_hash, user_type) VALUES (?, ?, ?)`;
+    db.run(stmt, [email, hashed, user_type], function (err) {
+        if (err) {
+            if (err.message.includes("UNIQUE constraint")) {
+                return res.status(409).json({ message: "Email already exists" });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json({ message: "User registered", user_id: this.lastID });
+    });
+});
 
 // Login
 app.post("/login", (req, res) => {
@@ -49,6 +49,23 @@ app.post("/login", (req, res) => {
             console.error("Error comparing passwords:", error);  // Catch bcrypt errors
             return res.status(500).json({ error: "Internal server error" });
         }
+    });
+});
+
+// Fetch All Active Product Listings
+app.get("/active-listings", (req, res) => {
+    const query = 'SELECT * FROM Product_Listings WHERE status != 0';
+    db.all(query, [], async (err, listings) => {
+        if (err) {
+            console.error("Error fetching listings");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!listings || listings.length === 0) {
+            return res.status(404).json({ message: "No Available Listings" });
+        }
+
+        res.json({ listings });
+        console.log("Listings fetched");
     });
 });
 

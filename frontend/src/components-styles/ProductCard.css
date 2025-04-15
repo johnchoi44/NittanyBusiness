@@ -6,9 +6,9 @@
     padding: 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     border: 2px solid #ccc;
-    border-radius: 20px;
+    border-radius: 10px;
     width: 250px;
-    height: fit-content;
+    height: 350px;
 }
 
 .meta-data-div {
@@ -44,6 +44,11 @@
 
 .rating-div h2 {
     font-size: 14px;
+}
+
+.review-count {
+    font-weight:350;
+    padding-left: 5px;
 }
 
 .price {

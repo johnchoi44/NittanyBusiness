@@ -8,6 +8,7 @@ const bcrypt = require("bcrypt"); // Import bcrypt for password hashing
 const db = new sqlite3.Database(path.resolve(__dirname, "nittanybusiness.db"), (err) => {
     if (err) return console.error("DB Error:", err.message);
     console.log("Connected to SQLite database.");
+    //populateTables();
 });
 
 
@@ -192,6 +193,56 @@ async function populateTables() {
                 console.error("Error inserting users:", err);
             }
         });
+
+        // Insert product listings
+        fs.createReadStream(path.resolve(__dirname, "data/product_listings.csv"))
+        .pipe(csv())
+        .on("data", (row) => {
+            // Clean & convert data
+            const productPrice = parseFloat(row.Product_Price.replace(/[^0-9.]/g, "").trim()); // Remove $ symbol
+            const listing = [
+                row.Seller_Email.trim(),
+                parseInt(row.Listing_ID),
+                row.Category.trim(),
+                row.Product_Title.trim(),
+                row.Product_Name.trim(),
+                row.Product_Description.trim(),
+                parseInt(row.Quantity),
+                productPrice,
+                parseInt(row.Status)
+            ];
+
+            // Insert as a promise
+            const promise = new Promise((resolve, reject) => {
+                db.run(
+                    `INSERT INTO Product_Listings (
+                        seller_email, listing_id, category, product_title,
+                        product_name, product_description, quantity, product_price, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    listing,
+                    (err) => {
+                        if (err) {
+                            console.error("Insert error:", err.message);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    }
+                );
+            });
+
+            promises.push(promise);
+        })
+        .on("end", async () => {
+            try {
+                await Promise.all(promises);
+                console.log("CSV data inserted into Product_Listings");
+                db.close();
+            } catch (err) {
+                console.error("Failed to insert CSV:", err);
+            }
+        });
+
 }
 
 

@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
+import { useUser } from "./UserContext";
 
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
+    const { setUserEmail } = useUser();
     
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -16,6 +18,7 @@ const Login = () => {
                 email,
                 password,
             });
+            setUserEmail(email); // set username globally
             navigate("/home");
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
