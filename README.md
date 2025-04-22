@@ -63,6 +63,13 @@ cd backend
 node server.js
 
 ```
+Alternatively, run this script from the root directory to start both services at once.
+```
+./dev_start.sh
+
+```
+This is a shell script that will reset the db file and start the frontend and backend together. Simply CTRL+C to stop both processes at once.
+
 
 ### SQL code to merge datasets
 ```angular2html

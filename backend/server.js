@@ -69,6 +69,45 @@ app.get("/active-listings", (req, res) => {
     });
 });
 
+// Fetch Product Listings for Seller
+// TODO
+
+
+// Fetch All Parent Categories
+app.get("/categories", (req, res) => {
+    const query = 'SELECT parent_category FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching parent categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        res.json({ categories });
+        console.log("Categories fetched");
+    });
+});
+
+// Fetch Reviews for listing
+app.get("/reviewData", (req, res) => {
+    const listing_id = req.query.listing_id
+    const query = 'SELECT AVG(r.rate) AS average_rating, COUNT(r.order_id) AS total_reviews FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';
+    db.all(query, [listing_id], async (err, reviews) => {
+        if (err) {
+            console.error("Error fetching reviews");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!reviews || reviews.length === 0) {
+            return res.status(404).json({ message: "No reviews found" });
+        }
+
+        res.json({ reviews });
+        console.log("reviews fetched");
+    });
+})
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
 });

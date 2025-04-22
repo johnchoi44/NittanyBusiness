@@ -153,30 +153,35 @@ async function hashPassword(password) {
 // Function to populate tables from CSV files
 async function populateTables() {
     console.log("Populating tables...");
-
     const promises = [];
+
+    let completedStreams = 0;
+    const totalStreams = 5; // users, categories, listings, reviews, orders
+
+    function checkIfDone() {
+        completedStreams++;
+        if (completedStreams === totalStreams) {
+            Promise.all(promises)
+                .then(() => {
+                    console.log("All data inserted successfully.");
+                });
+        }
+    }
+
+    // === USERS ===
     fs.createReadStream(path.resolve(__dirname, "data/users.csv"))
         .pipe(csv())
         .on("data", async (row) => {
-            // Trim any leading/trailing spaces from row keys
             row = Object.fromEntries(
                 Object.entries(row).map(([key, value]) => [key.trim(), value])
             );
             try {
-                const hashedPassword = await hashPassword(row.password); // Hash the password
-                // Use Promise to ensure the insertions complete
+                const hashedPassword = await hashPassword(row.password);
                 const promise = new Promise((resolve, reject) => {
                     db.run(
                         `INSERT INTO Users (email, password_hash) VALUES (?, ?)`,
                         [row.email, hashedPassword],
-                        (err) => {
-                            if (err) {
-                                console.error("Error inserting into Users table:", err.message);
-                                reject(err); // Reject if there's an error
-                            } else {
-                                resolve(); // Resolve when insertion is successful
-                            }
-                        }
+                        (err) => err ? reject(err) : resolve()
                     );
                 });
                 promises.push(promise);
@@ -184,22 +189,31 @@ async function populateTables() {
                 console.error("Error hashing password:", err);
             }
         })
-        .on("end", async () => {
-            try {
-                // Wait for all insertions to complete
-                await Promise.all(promises);
-                console.log("Users table populated with securely hashed passwords.");
-            } catch (err) {
-                console.error("Error inserting users:", err);
-            }
-        });
+        .on("end", checkIfDone);
 
-        // Insert product listings
-        fs.createReadStream(path.resolve(__dirname, "data/product_listings.csv"))
+    // === CATEGORIES ===
+    fs.createReadStream(path.resolve(__dirname, "data/categories.csv"))
         .pipe(csv())
         .on("data", (row) => {
-            // Clean & convert data
-            const productPrice = parseFloat(row.Product_Price.replace(/[^0-9.]/g, "").trim()); // Remove $ symbol
+            row = Object.fromEntries(
+                Object.entries(row).map(([key, value]) => [key.trim(), value])
+            );
+            const promise = new Promise((resolve, reject) => {
+                db.run(
+                    `INSERT INTO Categories (parent_category, category_name) VALUES (?, ?)`,
+                    [row.parent_category, row.category_name],
+                    (err) => err ? reject(err) : resolve()
+                );
+            });
+            promises.push(promise);
+        })
+        .on("end", checkIfDone);
+
+    // === PRODUCT LISTINGS ===
+    fs.createReadStream(path.resolve(__dirname, "data/product_listings.csv"))
+        .pipe(csv())
+        .on("data", (row) => {
+            const productPrice = parseFloat(row.Product_Price.replace(/[^0-9.]/g, "").trim());
             const listing = [
                 row.Seller_Email.trim(),
                 parseInt(row.Listing_ID),
@@ -211,8 +225,6 @@ async function populateTables() {
                 productPrice,
                 parseInt(row.Status)
             ];
-
-            // Insert as a promise
             const promise = new Promise((resolve, reject) => {
                 db.run(
                     `INSERT INTO Product_Listings (
@@ -220,30 +232,61 @@ async function populateTables() {
                         product_name, product_description, quantity, product_price, status
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     listing,
-                    (err) => {
-                        if (err) {
-                            console.error("Insert error:", err.message);
-                            reject(err);
-                        } else {
-                            resolve();
-                        }
-                    }
+                    (err) => err ? reject(err) : resolve()
                 );
             });
-
             promises.push(promise);
         })
-        .on("end", async () => {
-            try {
-                await Promise.all(promises);
-                console.log("CSV data inserted into Product_Listings");
-                db.close();
-            } catch (err) {
-                console.error("Failed to insert CSV:", err);
-            }
-        });
+        .on("end", checkIfDone);
 
+    // === REVIEWS ===
+    fs.createReadStream(path.resolve(__dirname, "data/reviews.csv"))
+        .pipe(csv())
+        .on("data", (row) => {
+            const review = [
+                parseInt(row.Order_ID),
+                parseInt(row.Rate),
+                (row.Review_Desc || "").trim()
+            ];
+            const promise = new Promise((resolve, reject) => {
+                db.run(
+                    `INSERT INTO Reviews (order_id, rate, review_desc) VALUES (?, ?, ?)`,
+                    review,
+                    (err) => err ? reject(err) : resolve()
+                );
+            });
+            promises.push(promise);
+        })
+        .on("end", checkIfDone);
+
+    // === Orders ===
+    fs.createReadStream(path.resolve(__dirname, "data/orders.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        const order = [
+            parseInt(row.Order_ID),
+            row.Seller_Email.trim(),
+            parseInt(row.Listing_ID),
+            row.Buyer_Email.trim(),
+            row.Date.trim(),
+            parseInt(row.Quantity),
+            parseInt(row.Payment)
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Orders (
+                    order_id, seller_email, listing_id, buyer_email,
+                    date, quantity, payment
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                order,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
 }
+
 
 
 

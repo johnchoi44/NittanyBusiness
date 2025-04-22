@@ -1,7 +1,7 @@
 import React from "react";
 import "../components-styles/ProductCard.css";
 
-const ProductCard = ({ title, description, seller, image, price }) => {
+const ProductCard = ({ reviewData, title, description, seller, image, price }) => {
     
     return (
         <div className="product-card-div">
@@ -22,10 +22,10 @@ const ProductCard = ({ title, description, seller, image, price }) => {
                         ★
                     </h2>
                     <h2 className="rating">
-                        4.5/5
+                        {reviewData?.average_rating ?? "-"}/5
                     </h2>
                     <h2 className="review-count">
-                        (15)
+                        ({reviewData?.total_reviews ?? "?"})
                     </h2>
                 </div>
                 <h2 className="price">
