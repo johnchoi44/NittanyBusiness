@@ -289,7 +289,7 @@ const Products = () => {
                 <div className="reviews-div">
                     <h1>Product Reviews:</h1>
                     <hr />
-                    {activeReviews.length > 0 ? 
+                    {activeReviews && activeReviews.length > 0 ? 
                         (
                         activeReviews.map((review, index) => (
                             <div className="review-data-div" key={index}>
