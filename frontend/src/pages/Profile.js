@@ -1,7 +1,7 @@
 import "../App.css";
 import NavBar from "../components/NavBar";
 
-const Home = () => {
+const Profile = () => {
     
     return (
         <div className="page-div">
@@ -10,4 +10,4 @@ const Home = () => {
     );
 };
 
-export default Home;
+export default Profile;

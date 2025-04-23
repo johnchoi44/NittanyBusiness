@@ -90,10 +90,28 @@ app.get("/categories", (req, res) => {
     });
 });
 
-// Fetch Reviews for listing
+// Fetch review data (count and avg. rate) for listings
 app.get("/reviewData", (req, res) => {
     const listing_id = req.query.listing_id
     const query = 'SELECT AVG(r.rate) AS average_rating, COUNT(r.order_id) AS total_reviews FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';
+    db.all(query, [listing_id], async (err, reviews) => {
+        if (err) {
+            console.error("Error fetching review data");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!reviews || reviews.length === 0) {
+            return res.status(404).json({ message: "No review data found" });
+        }
+
+        res.json({ reviews });
+        console.log("review data fetched");
+    });
+});
+
+// Fetch reviews for listing
+app.get("/reviews", (req, res) => {
+    const listing_id = req.query.listing_id
+    const query = 'SELECT r.rate, r.review_desc FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';
     db.all(query, [listing_id], async (err, reviews) => {
         if (err) {
             console.error("Error fetching reviews");
@@ -106,7 +124,7 @@ app.get("/reviewData", (req, res) => {
         res.json({ reviews });
         console.log("reviews fetched");
     });
-})
+});
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)

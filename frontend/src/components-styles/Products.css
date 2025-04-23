@@ -1,6 +1,4 @@
-.products-div {
 
-}
 
 .sorting-div {
     display: flex;
@@ -43,3 +41,138 @@
     padding-top: 50px;
 }
 
+.row {
+    display: flex;
+    flex-direction: row;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+}
+
+.product-display {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    text-align: left;
+    padding-top: 200px;
+    width: 50%;
+}
+
+.ptitle {
+    font-size: 40px;
+    margin-bottom: 0;
+}
+
+.name {
+    font-size: 30px;
+    font-weight: normal;
+    margin-bottom: 0;
+}
+
+.category {
+    font-size: 20px;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.pdescription {
+    font-size: 20px;
+    font-weight: normal;
+}
+
+.pseller {
+    font-size: 20px;
+    color: rgba(30, 64, 124);
+    margin-bottom: 0;
+}
+
+.pstar-logo {
+    font-size: 50px;
+    color: orange;
+}
+
+.prating-div {
+    display: flex;
+    flex-direction: row;
+}
+
+.prating-div h2 {
+    font-size: 20px;
+}
+
+.pprice {
+    font-size: 50px;
+    margin-top: 0;
+}
+
+.pimage {
+    width: 80%;
+    margin: auto;
+}
+
+.preview-count {
+    font-style: italic;
+    padding-left: 5px;
+    font-weight: normal;
+}
+
+.back {
+    height: 40px;
+    margin-top: 80px;
+    margin-left: 20px;
+    color: rgba(30, 64, 124);
+    transition: transform 0.3s ease, cursor 0.2s ease;
+}
+
+.back:hover {
+    cursor: pointer; /* Changes the cursor to a pointer */
+    transform: scale(1.015); /* Scales the element by 10% */
+}
+
+.back:active {
+    transform: scale(1.00); /* Scales the element by 10% */
+}
+
+.reviews-div {
+    margin: 40px;
+    margin-left: 100px;
+    margin-right: 100px;
+}
+
+.review-data-div {
+    display: flex;
+    flex-direction: row;
+}
+
+.review-star {
+    color: orange;
+}
+
+.review-desc {
+    font-size: 22px;
+    padding-left: 30px;
+}
+
+.buy-button {
+    width: 125px;
+    height: 60px;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    border-radius: 10px;
+    border-color: rgba(30, 64, 124);
+    background-color: rgba(30, 64, 124);
+    transition: transform 0.3s ease, cursor 0.2s ease;
+}
+
+.buy-button:hover {
+    cursor: pointer; /* Changes the cursor to a pointer */
+    transform: scale(1.015); /* Scales the element by 10% */
+    background-color: rgb(46, 83, 123);
+}
+
+.buy-button:active {
+    transform: scale(1.00); /* Scales the element by 10% */
+}

@@ -1,10 +1,10 @@
 import React from "react";
 import "../components-styles/ProductCard.css";
 
-const ProductCard = ({ reviewData, title, description, seller, image, price }) => {
+const ProductCard = ({ reviewData, title, description, seller, image, price, onClick }) => {
     
     return (
-        <div className="product-card-div">
+        <div className="product-card-div" onClick={onClick}>
             <img className="image" src={image}>
             </img>
             <div className="meta-data-div">

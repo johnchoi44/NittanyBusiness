@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../components-styles/Products.css";
 import ProductCard from "./ProductCard";
-import placeholder from "../components-styles/images/nittanyicon.png"
+import placeholder from "../components-styles/images/nittanyicon.png";
+import back_img from "../components-styles/images/left-arrow.png";
 import Search from "./Search";
 import { useMemo } from "react";
 
@@ -15,6 +16,8 @@ const Products = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("default");
     const [reviews, setReviews] = useState({});
+    const [activeProduct, setActiveProduct] = useState(null);
+    const [activeReviews, setActiveReviews] = useState([]);
 
     // Fetch products only when the component mounts
     useEffect(() => {
@@ -94,6 +97,22 @@ const Products = () => {
             return null;
         }
     };
+
+        // function for calling api to retrieve review data
+        const getReviews = async (listing_id) => {
+            try {
+                const res = await axios.get("http://localhost:8080/reviews", {
+                    params: { listing_id }
+                });
+                // Grab results
+                const reviews = res.data.reviews;
+    
+                return reviews;
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+                return null;
+            }
+        };
     
 
     // filter out duplicate categories for display
@@ -146,59 +165,144 @@ const Products = () => {
             fetchReviews();
         }
     }, [displayData]);
+
+    // async function for creating an order for a specific product
+    async function handleBuyClick(product) {
+        
+    }
+
+    // card click handler
+    async function handleCardClick(product) {
+        setActiveProduct(product);
+        // fetch reviews for active product
+        const reviews = await getReviews(product.listing_id);
+        setActiveReviews(reviews);
+        console.log("reviews:");
+        console.log(reviews);
+    };
+
+    // back click handler
+    const handleBackClick = () => {
+        // clear active product and active reviews
+        setActiveProduct(null);
+        setActiveReviews([]);
+    }
     
     return (
         <div>
-            <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}/>
-            <div className="products-div">
-                <div className="sorting-div">
-                    <h3 className="sort-prompt">Category</h3>
-                    <select
-                        className="sort-options"
-                        id="category-options"
-                        name="category"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}>
-                        {/* Add category options here */}
-                        <option value="default">Default</option>
-                        {(uniqueParentCategories || []).map((category, index) => (
-                            <option value={category.parent_category}>{category.parent_category}</option>
-                        ))}
-                    </select>
-                    <h3 className="sort-prompt">Sort By</h3>
-                    <select 
-                        className="sort-options" 
-                        id="sorting-options" 
-                        name="sort"
-                        value={sortOption}
-                        onChange={(e) => setSortOption(e.target.value)}>
-                        <option value="default">Default</option>
-                        <option value="price-low-high">Price: Low to High</option>
-                        <option value="price-high-low">Price: High to Low</option>
-                        <option value="alphabetical-a-z">Alphabetical: A-Z</option>
-                        <option value="alphabetical-z-a">Alphabetical: Z-A</option>
-                        <option value="product-reviews-high-low"># Reviews</option>
-                        <option value="seller-reviews-high-low">Avg. Rating</option>
-                    </select>
+            { activeProduct === null ? 
+            ( 
+            <div>
+                <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}/>
+                <div className="products-div">
+                    <div className="sorting-div">
+                        <h3 className="sort-prompt">Category</h3>
+                        <select
+                            className="sort-options"
+                            id="category-options"
+                            name="category"
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}>
+                            {/* Add category options here */}
+                            <option value="default">Default</option>
+                            {(uniqueParentCategories || []).map((category, index) => (
+                                <option value={category.parent_category}>{category.parent_category}</option>
+                            ))}
+                        </select>
+                        <h3 className="sort-prompt">Sort By</h3>
+                        <select 
+                            className="sort-options" 
+                            id="sorting-options" 
+                            name="sort"
+                            value={sortOption}
+                            onChange={(e) => setSortOption(e.target.value)}>
+                            <option value="default">Default</option>
+                            <option value="price-low-high">Price: Low to High</option>
+                            <option value="price-high-low">Price: High to Low</option>
+                            <option value="alphabetical-a-z">Alphabetical: A-Z</option>
+                            <option value="alphabetical-z-a">Alphabetical: Z-A</option>
+                            <option value="product-reviews-high-low"># Reviews</option>
+                            <option value="seller-reviews-high-low">Avg. Rating</option>
+                        </select>
+                    </div>
+                    <div className="product-cards-div">
+                    {displayData.length > 0 ? (
+                            displayData.map((product, index) => (
+                                <ProductCard
+                                    key={index}
+                                    title={product.product_title}
+                                    description={product.product_description}
+                                    seller={product.seller_email}
+                                    image={placeholder}
+                                    price={product.product_price}
+                                    reviewData={reviews[product.listing_id]}
+                                    onClick={() => handleCardClick(product)}
+                                />
+                            ))
+                        ) : (
+                            <p className="loading">Loading...</p>
+                        )}
+                    </div>
                 </div>
-                <div className="product-cards-div">
-                {displayData.length > 0 ? (
-                        displayData.map((product, index) => (
-                            <ProductCard
-                                key={index}
-                                title={product.product_title}
-                                description={product.product_description}
-                                seller={product.seller_email}
-                                image={placeholder}
-                                price={product.product_price}
-                                reviewData={reviews[product.listing_id]}
-                            />
-                        ))
-                    ) : (
-                        <p className="loading">Loading...</p>
+            </div>
+            ) : (
+            // Other Render Option: Specific Product Page
+            <div className="col">
+                <div className="row">
+                    <img className="back" src={back_img} onClick={() => handleBackClick()}></img>
+                    <div className="product-display">
+                        <img className="pimage" src={placeholder}></img>
+                    </div>
+                    <div className="product-display">
+                        <h1 className="ptitle">
+                            {activeProduct.product_title}
+                        </h1>
+                        <h1 className="name">
+                            {activeProduct.product_name}
+                        </h1>
+                        <h1 className="category">
+                            {activeProduct.category}
+                        </h1>
+                        <h2 className="pdescription">
+                            {activeProduct.product_description}
+                        </h2>
+                        <h2 className="pseller">
+                            Seller: {activeProduct.seller_email}
+                        </h2>
+                        <div className="prating-div">
+                            <h2 className="pstar-logo">
+                                ★
+                            </h2>
+                            <h2 className="prating">
+                                {reviews[activeProduct.listing_id]?.average_rating ?? "-"}/5
+                            </h2>
+                            <h2 className="preview-count">
+                                ({reviews[activeProduct.listing_id]?.total_reviews ?? "?"})
+                            </h2>
+                        </div>
+                        <h2 className="pprice">
+                            ${activeProduct.product_price}
+                        </h2>
+                        <button className="buy-button">BUY NOW</button>
+                    </div>
+                </div>
+                <div className="reviews-div">
+                    <h1>Product Reviews:</h1>
+                    <hr />
+                    {activeReviews.length > 0 ? 
+                        (
+                        activeReviews.map((review, index) => (
+                            <div className="review-data-div" key={index}>
+                                <h2 className="review-star">{"★".repeat(review.rate)}</h2>
+                                <p className="review-desc">{review.review_desc}</p>
+                            </div>
+                            ))
+                        ) : (
+                        <h2>No Reviews Yet</h2>
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 };
