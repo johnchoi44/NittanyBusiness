@@ -8,6 +8,7 @@ import { useUser } from "./UserContext";
 const SellerProducts = () => {
     const [data, setData] = useState([]);
     const [sortedData, setSortedData] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [sortOption, setSortOption] = useState("default");
     const [message, setMessage] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("default");
@@ -58,6 +59,15 @@ const SellerProducts = () => {
         setSortedData(sorted);
     }, [sortOption, data, reviews]);
 
+    const uniqueParentCategories = useMemo(() => {
+            const seen = new Set();
+            return (categories || []).filter(cat => {
+                if (seen.has(cat.parent_category)) return false;
+                seen.add(cat.parent_category);
+                return true;
+            });
+        }, [categories]);
+
     const getReviewCountForProduct = async (listing_id) => {
         try {
             const res = await axios.get("http://localhost:8080/reviewData", {
@@ -107,6 +117,36 @@ const SellerProducts = () => {
     return (
         <div>
             <div className="products-div">
+            <div className="sorting-div">
+                    <h3 className="sort-prompt">Category</h3>
+                    <select
+                        className="sort-options"
+                        id="category-options"
+                        name="category"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}>
+                        {/* Add category options here */}
+                        <option value="default">Default</option>
+                        {(uniqueParentCategories || []).map((category, index) => (
+                            <option value={category.parent_category}>{category.parent_category}</option>
+                        ))}
+                    </select>
+                    <h3 className="sort-prompt">Sort By</h3>
+                    <select 
+                        className="sort-options" 
+                        id="sorting-options" 
+                        name="sort"
+                        value={sortOption}
+                        onChange={(e) => setSortOption(e.target.value)}>
+                        <option value="default">Default</option>
+                        <option value="price-low-high">Price: Low to High</option>
+                        <option value="price-high-low">Price: High to Low</option>
+                        <option value="alphabetical-a-z">Alphabetical: A-Z</option>
+                        <option value="alphabetical-z-a">Alphabetical: Z-A</option>
+                        <option value="product-reviews-high-low"># Reviews</option>
+                        <option value="seller-reviews-high-low">Avg. Rating</option>
+                    </select>
+                </div>
                 <div className="product-cards-div">
                     {displayData.length > 0 ? (
                         displayData.map((product, index) => (
