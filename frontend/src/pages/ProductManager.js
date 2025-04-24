@@ -8,7 +8,10 @@ const Product = () => {
     return (
         <div className="page-div">
             <NavBar />
-            <SellerProducts />
+            {/* added to account for navbar margin*/}
+            <div style={{marginTop: "60px"}}> 
+                <SellerProducts />
+            </div>
         </div>
     );
 };
