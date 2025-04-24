@@ -6,6 +6,7 @@ import placeholder from "../components-styles/images/nittanyicon.png";
 import back_img from "../components-styles/images/left-arrow.png";
 import Search from "./Search";
 import { useMemo } from "react";
+import { useUser } from './UserContext';
 
 const Products = () => {
     const [data, setData] = useState([]);
@@ -18,6 +19,8 @@ const Products = () => {
     const [reviews, setReviews] = useState({});
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
+    const [quantity, setQuantity] = useState(1);
+    const { userEmail } = useUser();
 
     // Fetch products only when the component mounts
     useEffect(() => {
@@ -85,7 +88,7 @@ const Products = () => {
     // function for calling api to retrieve review data
     const getReviewCountForProduct = async (listing_id) => {
         try {
-            const res = await axios.get("http://localhost:8080/reviewData", {
+            const res = await axios.get("http://localhost:8080/review-data", {
                 params: { listing_id }
             });
             // Grab the first review from the array
@@ -98,21 +101,55 @@ const Products = () => {
         }
     };
 
-        // function for calling api to retrieve review data
-        const getReviews = async (listing_id) => {
-            try {
-                const res = await axios.get("http://localhost:8080/reviews", {
-                    params: { listing_id }
-                });
-                // Grab results
-                const reviews = res.data.reviews;
-    
-                return reviews;
-            } catch (err) {
-                setMessage(err.response?.data?.message || "Error occurred.");
-                return null;
-            }
-        };
+    // function for calling api to retrieve review data
+    const getReviews = async (listing_id) => {
+        try {
+            const res = await axios.get("http://localhost:8080/reviews", {
+                params: { listing_id }
+            });
+            // Grab results
+            const reviews = res.data.reviews;
+
+            return reviews;
+        } catch (err) {
+            setMessage(err.response?.data?.message || "Error occurred.");
+            return null;
+        }
+    };
+
+    // function for calling api to submit an order
+    const submitOrder = async (product) => {
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+
+        const seller_email = product.seller_email;
+        const listing_id = product.listing_id;
+        const buyer_email = userEmail;
+        const date = formattedDate;
+        const new_quantity = quantity;
+        const payment = product.product_price * quantity;
+
+        if (product.quantity < quantity) {
+            setMessage("Cannot Buy That Many");
+        }
+
+        try {
+            const res = await axios.post("http://localhost:8080/submit-order", {
+                params: {
+                    seller_email,
+                    listing_id,
+                    buyer_email,
+                    date,
+                    new_quantity,
+                    payment
+                }
+            });
+            alert("Order Submitted Successfully");
+            
+        } catch (err) {
+            alert(err.response?.data?.message || "Error occurred.");
+        }
+    }
     
 
     // filter out duplicate categories for display
@@ -168,7 +205,7 @@ const Products = () => {
 
     // async function for creating an order for a specific product
     async function handleBuyClick(product) {
-        
+        await submitOrder(product);
     }
 
     // card click handler
@@ -187,6 +224,10 @@ const Products = () => {
         setActiveProduct(null);
         setActiveReviews([]);
     }
+
+    const handleQuantityChange = (event) => {
+        setQuantity(Number(event.target.value));
+      };
     
     return (
         <div>
@@ -283,7 +324,23 @@ const Products = () => {
                         <h2 className="pprice">
                             ${activeProduct.product_price}
                         </h2>
-                        <button className="buy-button">BUY NOW</button>
+                            {activeProduct.quantity > 0 ?
+                            (
+                            <div className="buy-div">
+                                <label className="quantity-label" htmlFor="quantity">Quantity: </label>
+                                <select className="quantity-select" id="quantity" value={quantity} onChange={handleQuantityChange}>
+                                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                                    <option key={num} value={num}>
+                                        {num}
+                                    </option>
+                                    ))}
+                                </select>
+                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>
+                                <h2 className="in-stock">{activeProduct.quantity} In Stock</h2>
+                            </div>
+                            ) : (
+                                <h2 className="out-of-stock">{activeProduct.quantity} Out Of Stock</h2>
+                            )}
                     </div>
                 </div>
                 <div className="reviews-div">

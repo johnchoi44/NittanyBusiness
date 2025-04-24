@@ -91,7 +91,7 @@ app.get("/categories", (req, res) => {
 });
 
 // Fetch review data (count and avg. rate) for listings
-app.get("/reviewData", (req, res) => {
+app.get("/review-data", (req, res) => {
     const listing_id = req.query.listing_id
     const query = 'SELECT AVG(r.rate) AS average_rating, COUNT(r.order_id) AS total_reviews FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';
     db.all(query, [listing_id], async (err, reviews) => {
@@ -123,6 +123,33 @@ app.get("/reviews", (req, res) => {
 
         res.json({ reviews });
         console.log("reviews fetched");
+    });
+});
+
+app.post("/submit-order", (req, res) => {
+    console.log(req.body);
+    const {seller_email, listing_id, buyer_email, date, quantity, payment} = req.body.params;
+    console.log(seller_email);
+    console.log(listing_id);
+    console.log(buyer_email);
+    console.log(date);
+    console.log(quantity);
+    console.log(payment);
+    console.log("Type of req.body:", typeof req.body);
+    console.log("req.body keys:", Object.keys(req.body));
+    const stmt = 'INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment) VALUES (?,?,?,?,?,?)';
+    db.run(stmt, [
+        seller_email,
+        listing_id,
+        buyer_email,
+        date,
+        quantity,
+        payment
+    ], function (err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json({ message: "Order submitted" });
     });
 });
 
