@@ -5,7 +5,7 @@ import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
-import Product from "./pages/Product";
+import Product from "./pages/ProductManager";
 import { UserProvider } from './components/UserContext';
 
 function App() {
