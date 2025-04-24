@@ -1,14 +1,14 @@
 import "../App.css";
 import NavBar from "../components/NavBar";
-import Search from "../components/Search";
-import Products from "../components/Products";
+import NewProduct from "../components/NewProduct";
+import SellerProducts from "../components/SellerProducts";
 
 const Product = () => {
     
     return (
         <div className="page-div">
             <NavBar />
-            <Products />
+            <SellerProducts />
         </div>
     );
 };
