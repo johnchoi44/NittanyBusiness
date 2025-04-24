@@ -158,6 +158,7 @@ const SellerProducts = () => {
                                 image={placeholder}
                                 price={product.product_price}
                                 reviewData={reviews[product.listing_id]}
+                                status={0}
                             />
                         ))
                     ) : (

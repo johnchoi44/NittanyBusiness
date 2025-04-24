@@ -278,6 +278,7 @@ const Products = () => {
                                     price={product.product_price}
                                     reviewData={reviews[product.listing_id]}
                                     onClick={() => handleCardClick(product)}
+                                    status={0}
                                 />
                             ))
                         ) : (
