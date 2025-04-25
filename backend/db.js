@@ -8,7 +8,7 @@ const bcrypt = require("bcrypt"); // Import bcrypt for password hashing
 const db = new sqlite3.Database(path.resolve(__dirname, "nittanybusiness.db"), (err) => {
     if (err) return console.error("DB Error:", err.message);
     console.log("Connected to SQLite database.");
-    //populateTables();
+    // populateTables();
 });
 
 
@@ -16,7 +16,8 @@ const db = new sqlite3.Database(path.resolve(__dirname, "nittanybusiness.db"), (
 db.run(`
     CREATE TABLE IF NOT EXISTS Users (
         email TEXT PRIMARY KEY,
-        password_hash TEXT NOT NULL
+        password_hash TEXT NOT NULL,
+        user_type TEXT
     )
 `);
 
@@ -156,7 +157,7 @@ async function populateTables() {
     const promises = [];
 
     let completedStreams = 0;
-    const totalStreams = 5; // users, categories, listings, reviews, orders
+    const totalStreams = 12;
 
     function checkIfDone() {
         completedStreams++;
@@ -285,9 +286,193 @@ async function populateTables() {
         promises.push(promise);
     })
     .on("end", checkIfDone);
+
+    // === Sellers ===
+    fs.createReadStream(path.resolve(__dirname, "data/sellers.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const seller = [
+            row.email.trim(),
+            row.business_name.trim(),
+            row.Business_Address_ID.trim(),
+            row.bank_routing_number.trim(),
+            row.bank_account_number.trim(),
+            parseFloat(row.balance || 0) // Default to 0.0 if missing
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Sellers (
+                    email, business_name, business_address_id,
+                    bank_routing_number, bank_account_number, balance
+                ) VALUES (?, ?, ?, ?, ?, ?)`,
+                seller,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === Requests ===
+    fs.createReadStream(path.resolve(__dirname, "data/Requests.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            row.sender_email.trim(),
+            row.helpdesk_staff_email ? row.helpdesk_staff_email.trim() : 'helpdeskteam@nittybiz.com',
+            row.request_type.trim(),
+            row.request_desc.trim(),
+            parseInt(row.request_status)
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Requests (
+                    sender_email, helpdesk_staff_email, request_type,
+                    request_desc, request_status
+                ) VALUES (?, ?, ?, ?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === HelpDesk ===
+    fs.createReadStream(path.resolve(__dirname, "data/Helpdesk.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            row.email.trim(),
+            row.Position.trim()
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Helpdesk (
+                    email, Position
+                ) VALUES (?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === Address ===
+    fs.createReadStream(path.resolve(__dirname, "data/Address.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            row.address_id.trim(),
+            parseInt(row.zipcode),
+            parseInt(row.street_num),
+            row.street_name.trim()
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Address (
+                    address_id, zipcode, street_num, street_name
+                ) VALUES (?, ?, ?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === Buyer ===
+    fs.createReadStream(path.resolve(__dirname, "data/Buyers.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            row.email.trim(),
+            row.business_name.trim(),
+            row.buyer_address_id.trim(),
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Buyer (
+                    email, business_name, buyer_address_id
+                ) VALUES (?, ?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === Credit_Cards ===
+    fs.createReadStream(path.resolve(__dirname, "data/Credit_Cards.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            row.credit_card_num.trim(),
+            row.card_type.trim(),
+            parseInt(row.expire_month),
+            parseInt(row.expire_year),
+            parseInt(row.security_code),
+            row.Owner_email.trim()
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Credit_Cards (
+                    credit_card_num, card_type, expire_month, expire_year,
+                    security_code, Owner_email
+                ) VALUES (?, ?, ?, ?, ?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
+    // === Zipcode_Info ===
+    fs.createReadStream(path.resolve(__dirname, "data/Zipcode_Info.csv"))
+    .pipe(csv())
+    .on("data", (row) => {
+        row = Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [key.trim(), value])
+        );
+        const request = [
+            parseInt(row.zipcode),
+            row.city.trim(),
+            row.state.trim()
+        ];
+        const promise = new Promise((resolve, reject) => {
+            db.run(
+                `INSERT INTO Zipcode_Info (
+                    zipcode, city, state
+                ) VALUES (?, ?, ?)`,
+                request,
+                (err) => err ? reject(err) : resolve()
+            );
+        });
+        promises.push(promise);
+    })
+    .on("end", checkIfDone);
+
 }
-
-
-
 
 module.exports = db;
