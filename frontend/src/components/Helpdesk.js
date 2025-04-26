@@ -4,7 +4,7 @@ import { useUser } from "./UserContext";
 import { useNavigate } from "react-router-dom";
 
 const Helpdesk = () => {
-    const { userEmail } = useUser();
+    const { userEmail, setUserEmail } = useUser();
     const navigate = useNavigate();
 
     const [searchEmail, setSearchEmail] = useState("");
@@ -79,13 +79,24 @@ const Helpdesk = () => {
         setShowOnlyMyRequests(false);
     };
 
-    return (
-        <div style={{ padding: "20px" }}>
-            <h1>Helpdesk Admin Dashboard</h1>
-            <p>Logged in as: <strong>{userEmail}</strong></p>
+    const handleLogout = () => {
+        setUserEmail(null);
+        localStorage.removeItem('userEmail');
+        navigate("/");
+    };
 
-            {error && <p style={{ color: "red" }}>{error}</p>}
-            {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
+    return (
+    <div style={{ padding: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h1>Helpdesk Admin Dashboard</h1>
+            <div>
+                <p>Logged in as: <strong>{userEmail}</strong></p>
+                <button onClick={handleLogout}>Logout</button>
+            </div>
+        </div>
+
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
 
             {/* --- User Management Section --- */}
             <section style={{ marginBottom: "40px" }}>
