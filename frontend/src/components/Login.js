@@ -11,6 +11,7 @@ const Login = () => {
     const navigate = useNavigate();
     const { setUserEmail } = useUser();
     
+    // TODO: add logic that direct user to different pages based on their type
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
