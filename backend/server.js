@@ -70,7 +70,24 @@ app.get("/active-listings", (req, res) => {
 });
 
 // Fetch Product Listings for Seller
-// TODO
+app.get("/listings-for-seller", (req, res) => {
+    const seller_email = req.query.userEmail;
+    const query = 'SELECT * FROM Product_Listings WHERE seller_email = ?';
+    console.log(req.query)
+    console.log("EMAIL: ",seller_email);
+    db.all(query, [seller_email], async (err, listings) => {
+        if (err) {
+            console.error("Error fetching listings");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!listings || listings.length === 0) {
+            return res.status(404).json({ message: "No Available Listings" });
+        }
+
+        res.json({ listings });
+        console.log("Listings fetched");
+    });
+});
 
 
 // Fetch All Parent Categories
@@ -126,17 +143,9 @@ app.get("/reviews", (req, res) => {
     });
 });
 
+// Submit an Order to Orders table
 app.post("/submit-order", (req, res) => {
-    console.log(req.body);
     const {seller_email, listing_id, buyer_email, date, quantity, payment} = req.body.params;
-    console.log(seller_email);
-    console.log(listing_id);
-    console.log(buyer_email);
-    console.log(date);
-    console.log(quantity);
-    console.log(payment);
-    console.log("Type of req.body:", typeof req.body);
-    console.log("req.body keys:", Object.keys(req.body));
     const stmt = 'INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment) VALUES (?,?,?,?,?,?)';
     db.run(stmt, [
         seller_email,
@@ -150,6 +159,96 @@ app.post("/submit-order", (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.status(201).json({ message: "Order submitted" });
+    });
+});
+
+// Fetch the UserType of a given user
+app.get("/get-user-type", (req, res) => {
+    const user_email = req.query.userEmail;
+    console.log(user_email);
+    const roles = [];
+
+    const queryBuyer = 'SELECT 1 FROM Buyer WHERE email = ? LIMIT 1';
+    const querySeller = 'SELECT 1 FROM Sellers WHERE email = ? LIMIT 1';
+    const queryHelpDesk = 'SELECT 1 FROM Helpdesk WHERE email = ? LIMIT 1';
+
+    db.get(queryBuyer, [user_email], (err, rowBuyer) => {
+        if (err) {
+            console.error("Buyer query error:", err);
+            return res.status(500).send("Database error");
+        }
+        if (rowBuyer) {
+            console.log("User in Buyers table");
+            roles.push("buyer");
+        }
+
+        db.get(querySeller, [user_email], (err, rowSeller) => {
+            if (err) {
+                console.error("Seller query error:", err);
+                return res.status(500).send("Database error");
+            }
+            if (rowSeller) {
+                console.log("User in Sellers table");
+                roles.push("seller");
+            }
+
+            db.get(queryHelpDesk, [user_email], (err, rowHelpdesk) => {
+                if (err) {
+                    console.error("Helpdesk query error:", err);
+                    return res.status(500).send("Database error");
+                }
+                if (rowHelpdesk) {
+                    console.log("User in Helpdesk table");
+                    roles.push("helpdesk");
+                }
+    
+                res.json({ user_email, roles });
+            });
+        });
+    });
+});
+
+// fetch the orders for a user email given userType
+app.get("/get-orders-by-type", (req, res) => {
+    const userType = req.query.userType;
+    const userEmail = req.query.userEmail;
+    let query = "";
+
+    if (userType === 'buyer') {
+        // requestor is buyer, so search for orders they placed
+        query = 'SELECT * FROM Orders WHERE buyer_email = ?'
+    }
+    else {
+        // requestor is seller, so search for orders placed to them
+        query = 'SELECT * FROM Orders WHERE seller_email = ?'
+    }
+
+    db.all(query, [userEmail], (err, orders) => {
+        if (err) {
+            console.error("Order query error:", err);
+            return res.status(500).send("Database error");
+        }
+        if (orders) {
+            console.log("Orders requested");
+            res.json({ orders });
+        }
+    });
+});
+
+// get product name given listing_id
+app.get("/get-product-name", (req, res) => {
+    const listing_id = req.query.listing_id;
+
+    const query = 'SELECT * FROM product_listings WHERE listing_id = ?'
+    db.get(query, [listing_id], (err, product) => {
+        if (err) {
+            console.error("Error Fetching Product:", err);
+            return res.status(500).send("Database error");
+        }
+        if (product) {
+            console.log("Product Requested");
+            res.json({ product });
+        }
     });
 });
 

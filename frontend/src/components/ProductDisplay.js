@@ -8,7 +8,9 @@ import Search from "./Search";
 import { useMemo } from "react";
 import { useUser } from './UserContext';
 
-const Products = () => {
+
+// component specifically for sellers to manage their products
+const ProductDisplay = () => {
     const [data, setData] = useState([]);
     const [categories, setCategories] = useState([]);
     const [sortedData, setSortedData] = useState([]);
@@ -26,7 +28,9 @@ const Products = () => {
     useEffect(() => {
         const handleProductFetch = async () => {
             try {
-                const res = await axios.get("http://localhost:8080/active-listings");
+                const res = await axios.get("http://localhost:8080/listings-for-seller", {
+                    params: { userEmail }
+                });
                 setData(res.data.listings);  // Assuming response contains the listings array
             } catch (err) {
                 setMessage(err.response?.data?.message || "Error occurred.");
@@ -116,40 +120,6 @@ const Products = () => {
             return null;
         }
     };
-
-    // function for calling api to submit an order
-    const submitOrder = async (product) => {
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-
-        const seller_email = product.seller_email;
-        const listing_id = product.listing_id;
-        const buyer_email = userEmail;
-        const date = formattedDate;
-        const new_quantity = quantity;
-        const payment = product.product_price * quantity;
-
-        if (product.quantity < quantity) {
-            setMessage("Cannot Buy That Many");
-        }
-
-        try {
-            const res = await axios.post("http://localhost:8080/submit-order", {
-                params: {
-                    seller_email,
-                    listing_id,
-                    buyer_email,
-                    date,
-                    new_quantity,
-                    payment
-                }
-            });
-            alert("Order Submitted Successfully");
-            
-        } catch (err) {
-            alert(err.response?.data?.message || "Error occurred.");
-        }
-    }
     
 
     // filter out duplicate categories for display
@@ -202,11 +172,6 @@ const Products = () => {
         }
     }, [displayData]);
 
-    // async function for creating an order for a specific product
-    async function handleBuyClick(product) {
-        await submitOrder(product);
-    }
-
     // card click handler
     async function handleCardClick(product) {
         setActiveProduct(product);
@@ -221,17 +186,12 @@ const Products = () => {
         setActiveProduct(null);
         setActiveReviews([]);
     }
-
-    const handleQuantityChange = (event) => {
-        setQuantity(Number(event.target.value));
-      };
     
     return (
         <div>
             { activeProduct === null ? 
             ( 
             <div>
-                <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}/>
                 <div className="products-div">
                     <div className="sorting-div">
                         <h3 className="sort-prompt">Category</h3>
@@ -321,23 +281,6 @@ const Products = () => {
                         <h2 className="pprice">
                             ${activeProduct.product_price}
                         </h2>
-                            {activeProduct.quantity > 0 ?
-                            (
-                            <div className="buy-div">
-                                <label className="quantity-label" htmlFor="quantity">Quantity: </label>
-                                <select className="quantity-select" id="quantity" value={quantity} onChange={handleQuantityChange}>
-                                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                                    <option key={num} value={num}>
-                                        {num}
-                                    </option>
-                                    ))}
-                                </select>
-                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>
-                                <h2 className="in-stock">{activeProduct.quantity} In Stock</h2>
-                            </div>
-                            ) : (
-                                <h2 className="out-of-stock">{activeProduct.quantity} Out Of Stock</h2>
-                            )}
                     </div>
                 </div>
                 <div className="reviews-div">
@@ -361,4 +304,4 @@ const Products = () => {
     );
 };
 
-export default Products;
+export default ProductDisplay;
