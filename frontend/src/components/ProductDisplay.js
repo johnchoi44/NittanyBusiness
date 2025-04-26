@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../components-styles/Products.css";
+import "../components-styles/ProductDisplay.css";
 import ProductCard from "./ProductCard";
 import placeholder from "../components-styles/images/nittanyicon.png";
 import back_img from "../components-styles/images/left-arrow.png";
@@ -21,8 +22,9 @@ const ProductDisplay = () => {
     const [reviews, setReviews] = useState({});
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
-    const [quantity, setQuantity] = useState(1);
     const { userEmail } = useUser();
+    // for tracking product changes
+    const [productData, setProductData] = useState(null);
 
     // Fetch products only when the component mounts
     useEffect(() => {
@@ -120,6 +122,35 @@ const ProductDisplay = () => {
             return null;
         }
     };
+
+    // handle product value edits
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setProductData((prevData) => {
+            const newData = {
+                ...prevData,
+                [name]: value,
+            };
+            console.log("New Product Data:");
+            console.log(newData); // Log the updated data immediately
+            return newData;
+        });
+    };
+
+    // handle save button click
+    const handleSaveChanges = async () => {
+        const listing_id = activeProduct.listing_id;
+        try {
+            await axios.put(`http://localhost:8080/update-product/`, {
+                listing_id: activeProduct.listing_id,
+                ...productData
+            });
+            alert("Product updated successfully!");
+        } catch (error) {
+            console.error("Error updating product:", error);
+            alert("Failed to update product.");
+        }
+    };
     
 
     // filter out duplicate categories for display
@@ -175,6 +206,15 @@ const ProductDisplay = () => {
     // card click handler
     async function handleCardClick(product) {
         setActiveProduct(product);
+        setProductData({
+            product_title: product.product_title || "",
+            product_name: product.product_name || "",
+            category: product.category || "",
+            product_description: product.product_description || "",
+            seller_email: product.seller_email || "",
+            product_price: product.product_price || "",
+            status: product.status || "",
+        });
         // fetch reviews for active product
         const reviews = await getReviews(product.listing_id);
         setActiveReviews(reviews);
@@ -189,6 +229,7 @@ const ProductDisplay = () => {
     
     return (
         <div>
+            <h1 className="manage-products">Manage Your Products</h1>
             { activeProduct === null ? 
             ( 
             <div>
@@ -252,18 +293,46 @@ const ProductDisplay = () => {
                         <img className="pimage" src={placeholder}></img>
                     </div>
                     <div className="product-display">
-                        <h1 className="ptitle">
-                            {activeProduct.product_title}
-                        </h1>
-                        <h1 className="name">
-                            {activeProduct.product_name}
-                        </h1>
-                        <h1 className="category">
-                            {activeProduct.category}
-                        </h1>
-                        <h2 className="pdescription">
-                            {activeProduct.product_description}
-                        </h2>
+                        <h3>Title:</h3>
+                        <input
+                            type="text"
+                            name="product_title"
+                            value={productData.product_title}
+                            onChange={handleChange}
+                            placeholder="Product Title"
+                            className="ptitle"
+                        />
+                        <h3>Name:</h3>
+                        <input
+                            type="text"
+                            name="product_name"
+                            value={productData.product_name}
+                            onChange={handleChange}
+                            placeholder="Product Name"
+                            className="name"
+                        />
+                        <h3>Category:</h3>
+                        <select
+                            name="category"
+                            value={productData.category}
+                            onChange={handleChange}
+                            className="category-disp"
+                        >
+                            <option value="">Select a Category</option>
+                            {categories.map((category, index) => (
+                                <option key={index} value={category.parent_category}>
+                                    {category.parent_category}
+                                </option>
+                            ))}
+                        </select>
+                        <h3>Description:</h3>
+                        <textarea
+                            name="product_description"
+                            value={productData.product_description}
+                            onChange={handleChange}
+                            placeholder="Product Description"
+                            className="pdescription"
+                        />
                         <h2 className="pseller">
                             Seller: {activeProduct.seller_email}
                         </h2>
@@ -278,13 +347,37 @@ const ProductDisplay = () => {
                                 ({reviews[activeProduct.listing_id]?.total_reviews ?? "?"})
                             </h2>
                         </div>
-                        <h2 className="pprice">
-                            ${activeProduct.product_price}
-                        </h2>
+                        <h3>Price: </h3>
+                        <input
+                            type="number"
+                            name="product_price"
+                            value={productData.product_price}
+                            onChange={handleChange}
+                            placeholder="Price"
+                            className="pprice"
+                            step="1"
+                        />
+                        <h3>Active: </h3>
+                        <select
+                            name="status"
+                            value={productData.status}
+                            onChange={handleChange}
+                            className="active"
+                        >
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
+                        <div className="submit-change-div">
+                            <button className="submit-changes-button" onClick={() => handleSaveChanges()}>
+                                SUBMIT CHANGES
+                            </button>
+                        </div>
+                        
                     </div>
                 </div>
                 <div className="reviews-div">
-                    <h1>Product Reviews:</h1>
+                    <h1>Buyer Feedback:</h1>
                     <hr />
                     {activeReviews && activeReviews.length > 0 ? 
                         (

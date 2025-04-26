@@ -252,6 +252,42 @@ app.get("/get-product-name", (req, res) => {
     });
 });
 
+
+// Define the endpoint to update a product
+app.put('/update-product', (req, res) => {
+    const { listing_id, product_title, product_name, category, product_description, seller_email, product_price, status } = req.body;  // Get updated data from request body
+    console.log(req.body);
+    console.log(listing_id);
+    console.log(product_title);
+    console.log(product_name);
+    console.log(category);
+    console.log(product_description);
+    console.log(seller_email);
+    console.log(product_price);
+    console.log(status);
+
+    // Prepare the SQL statement to update the product by ID
+    const sql = `
+        UPDATE product_listings
+        SET product_title = ?, product_name = ?, category = ?, product_description = ?, product_price = ?, status = ?
+        WHERE listing_id = ?
+    `;
+
+    // Run the SQL update query
+    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function(err) {
+        if (err) {
+            return res.status(500).json({ message: 'Error updating product', error: err.message });
+        }
+
+        // Check if any rows were affected (this ensures the product exists)
+        if (this.changes === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        return res.json({ message: 'Product updated successfully', productId: listing_id });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
 });

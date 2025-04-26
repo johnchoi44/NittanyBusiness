@@ -19,7 +19,6 @@ const OrderDisplay = ({ userType }) => {
                 });
                 const fetchedOrders = res.data.orders || [];
                 setOrders(fetchedOrders);
-                console.log("ORDERS: ", fetchedOrders)
 
                 // Fetch product names for each listing_id
                 const names = {};
@@ -50,7 +49,6 @@ const OrderDisplay = ({ userType }) => {
     let orderCards = [];
 
     if (!loading && orders.length > 0) {
-        console.log("LEN: ", orders.length)
         for (let i = 0; i < orders.length; i++) {
             const order = orders[i];
             orderCards.push(
