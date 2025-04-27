@@ -111,7 +111,7 @@
     font-weight: bold;
 }
 
-fieldset {
+.sign-up-container fieldset {
     all: unset;
     display: flex;
     flex-direction: column;
@@ -119,14 +119,14 @@ fieldset {
     align-items: stretch;
 }
 
-input {
+.sign-up-container input {
     all: unset;
     background-color: white;
     padding: 2.5%;
     border-radius: 15px;
 }
 
-select {
+.sign-up-container select {
     all: unset;
     background-color: white;
     padding: 2.5%;
@@ -134,8 +134,8 @@ select {
 }
 
 /* Disable spinner (up & down arrow button) */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
+.sign-up-container input[type=number]::-webkit-inner-spin-button,
+.sign-up-container input[type=number]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }

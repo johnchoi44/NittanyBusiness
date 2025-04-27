@@ -33,4 +33,19 @@
     border-radius: 15px;
 }
 
+.login-container fieldset {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.login-container input {
+    all: unset;
+    background-color: white;
+    padding: 2.5%;
+    border-radius: 15px;
+}
+
 /* Rest of components uses SignUp.css styles */
