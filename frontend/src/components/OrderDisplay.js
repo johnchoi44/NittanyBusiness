@@ -136,28 +136,52 @@ const OrderDisplay = ({ userType }) => {
             orderCards.push(
                 <div key={i} className="order-card">
                     <p><strong>Order ID:</strong> {order.order_id}</p>
-                    <p><strong>Seller:</strong> {order.seller_email}</p>
-                    {/*<p><strong>Buyer:</strong> {order.buyer_email}</p>*/}
+                    {userType !== "seller" && (
+                        <p><strong>Seller:</strong> {order.seller_email}</p>
+                    )}
+                    {userType !== "buyer" && (
+                        <p><strong>Buyer:</strong> {order.buyer_email}</p>
+                    )}
                     <p><strong>Product:</strong> {productNames[order.listing_id] || "Loading..."}</p>
                     <p><strong>Quantity:</strong> {order.quantity}</p>
                     <p><strong>Total:</strong> ${order.payment}</p>
                     <p><strong>Date:</strong> {order.date}</p>
-                    <button
-                        style={{
-                            marginTop: "15px",
-                            marginBottom: "15px",
-                            padding: "8px 16px",
-                            borderRadius: "8px",
-                            backgroundColor: order.reviewed ? "gray" : "rgba(30,64,124)",
-                            color: "white",
-                            border: "none",
-                            cursor: "pointer",
-                            fontWeight: "bold"
-                        }}
-                        onClick={() => handleReviewClick(order)}
-                    >
-                        {order.reviewed ? "View Review" : "Leave Review"}
-                    </button>
+                    {userType !== "seller" && (
+                        <button
+                            style={{
+                                marginTop: "15px",
+                                marginBottom: "15px",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                backgroundColor: order.reviewed ? "gray" : "rgba(30,64,124)",
+                                color: "white",
+                                border: "none",
+                                cursor: "pointer",
+                                fontWeight: "bold"
+                            }}
+                            onClick={() => handleReviewClick(order)}
+                        >
+                            {order.reviewed ? "View Review" : "Leave Review"}
+                        </button>
+                    )}
+                    {userType === "seller" && order.reviewed && (
+                        <button
+                            style={{
+                                marginTop: "15px",
+                                marginBottom: "15px",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                backgroundColor: "gray",
+                                color: "white",
+                                border: "none",
+                                cursor: "pointer",
+                                fontWeight: "bold"
+                            }}
+                            onClick={() => handleReviewClick(order)}
+                        >
+                            View Review
+                        </button>
+                    )}
 
                 </div>
             );
