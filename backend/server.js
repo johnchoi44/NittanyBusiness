@@ -318,10 +318,10 @@ app.post("/helpdesk/update-request-status", (req, res) => {
 
 // Search user by email
 app.get("/helpdesk/user", (req, res) => {
-    const email = req.query.email?.trim();  // Trim spaces
-    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`; // Case insensitive
+    const email = req.query.email?.trim();
+    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`;
 
-    console.log("Searching for email:", email);  // Debugging output
+    console.log("Searching for email:", email);
 
     db.get(query, [email], (err, user) => {
         if (err) return res.status(500).json({ error: err.message });

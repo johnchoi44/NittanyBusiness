@@ -92,6 +92,10 @@
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.user-card h3 {
+  margin-top: 0px;
+}
+
 .pending-requests-header {
   display: flex;
   align-items: center;
