@@ -4,17 +4,6 @@ import { useUser } from "./UserContext";
 
 const ProductCard = ({ reviewData, title, description, seller, image, price, onClick, status }) => {
     const { userEmail } = useUser();
-
-    function ProductStatus(props) {
-        if (seller.toLowerCase() !== userEmail.toLowerCase()) {
-            return null
-        }
-        
-        return (
-            <h2 className="status">
-                {props.pStatus ? "Active" : "Inactive"}     
-            </h2>);
-    }
     
     return (
         <div className="product-card-div" onClick={onClick}>
@@ -44,7 +33,6 @@ const ProductCard = ({ reviewData, title, description, seller, image, price, onC
                 <h2 className="price">
                     ${price}
                 </h2>
-                <ProductStatus pStatus={status}/>
             </div>
         </div>
     );

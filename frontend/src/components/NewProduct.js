@@ -14,7 +14,8 @@ const NewProduct = ({setNewProduct}) => {
     const [product_name, setProductName] = useState("");
     const [category, setCategory] = useState("Default");
     const [product_description, setProductDescription] = useState("");
-    const [product_price, setProductPrice] = useState(0);  
+    const [product_price, setProductPrice] = useState(0);
+    const [quantity, setProductQuantity] = useState(0);
     const { userEmail } = useUser();
 
     // Fetch categories only when the component mounts
@@ -33,7 +34,9 @@ const NewProduct = ({setNewProduct}) => {
     }, []);  // Empty dependency array means this will run once when the component mounts
 
     const handleSaveProduct = async () => {
-        const status = 1;
+        const status = quantity > 0 ? 1 : 0;
+        const listing_id = Math.floor(Math.random() * 10000) + 1;
+        
         if (!product_title || !product_name || !category || !product_description || product_price <= 0) {
             setMessage("Please fill in all fields.");
             return;
@@ -59,7 +62,9 @@ const NewProduct = ({setNewProduct}) => {
                 category,
                 product_description,
                 product_price,
-                status
+                quantity,
+                status,
+                listing_id
             });
             setMessage(res.data.message);
             setNewProduct(null); 
@@ -126,9 +131,19 @@ const NewProduct = ({setNewProduct}) => {
                                         className="product_price"
                                         step="1"
                                     />
+                                    <h3>Quantity: </h3>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={quantity}
+                                        onChange={(e) => setProductQuantity(e.target.value)}
+                                        placeholder="Quantity"
+                                        className="quantity"
+                                        step="1"
+                                    />
                                     <div className="submit-div">
-                                        <button className="submit-button" onClick={() => handleSaveProduct()}>
-                                            SUBMIT CHANGES
+                                        <button className="submit-button" onClick={handleSaveProduct}>
+                                            SUBMIT PRODUCT
                                         </button>
                                     </div>
                                 </div>
