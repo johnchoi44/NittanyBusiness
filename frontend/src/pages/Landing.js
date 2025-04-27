@@ -7,7 +7,7 @@ const Landing = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="page-container">
+        <div className="landing-container">
             <div className="content-container">
                 <div className="text-container">
                     <h4 id="sub-title">Smarter way to connect, procure, and grow</h4>

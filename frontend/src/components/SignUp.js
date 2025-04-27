@@ -98,7 +98,7 @@ const SignUp = () => {
     };
     
     return (
-            <div className="page-container">
+            <div className="sign-up-container">
                 <div className="side-bar">
                     
                     {userType === "buyer" ? (
