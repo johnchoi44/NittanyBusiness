@@ -41,6 +41,11 @@
     font-weight: normal;
 }
 
+.status {
+    font-size: 14px;
+    font-weight: bold;
+}
+
 .seller {
     font-size: 14px;
     color: rgba(30, 64, 124);

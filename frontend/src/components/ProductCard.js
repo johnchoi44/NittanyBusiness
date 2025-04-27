@@ -1,7 +1,9 @@
 import React from "react";
 import "../components-styles/ProductCard.css";
+import { useUser } from "./UserContext";
 
-const ProductCard = ({ reviewData, title, description, seller, image, price, onClick }) => {
+const ProductCard = ({ reviewData, title, description, seller, image, price, onClick, status }) => {
+    const { userEmail } = useUser();
     
     return (
         <div className="product-card-div" onClick={onClick}>

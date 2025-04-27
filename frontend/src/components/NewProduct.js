@@ -10,11 +10,12 @@ import { useUser } from './UserContext';
 const NewProduct = ({setNewProduct}) => {
     const [categories, setCategories] = useState([]);
     const [message, setMessage] = useState("");
-    const [pTitle, setPtitle] = useState("");
-    const [pName, setPname] = useState("");
-    const [pCategory, setPcategory] = useState("Default");
-    const [pDescription, setPdescription] = useState("");
-    const [pPrice, setPprice] = useState(0);  
+    const [product_title, setProductTitle] = useState("");
+    const [product_name, setProductName] = useState("");
+    const [category, setCategory] = useState("Default");
+    const [product_description, setProductDescription] = useState("");
+    const [product_price, setProductPrice] = useState(0);
+    const [quantity, setProductQuantity] = useState(0);
     const { userEmail } = useUser();
 
     // Fetch categories only when the component mounts
@@ -33,19 +34,22 @@ const NewProduct = ({setNewProduct}) => {
     }, []);  // Empty dependency array means this will run once when the component mounts
 
     const handleSaveProduct = async () => {
-        if (!pTitle || !pName || !pCategory || !pDescription || pPrice <= 0) {
+        const status = quantity > 0 ? 1 : 0;
+        const listing_id = Math.floor(Math.random() * 10000) + 1;
+        
+        if (!product_title || !product_name || !category || !product_description || product_price <= 0) {
             setMessage("Please fill in all fields.");
             return;
         }
-        if (pCategory === "Default") {
+        if (category === "Default") {
             setMessage("Please select a valid category.");
             return;
         }
-        if (pPrice < 0) {
+        if (product_price < 0) {
             setMessage("Price cannot be negative.");
             return;
         }
-        if (pPrice === 0) {
+        if (product_price === 0) {
             setMessage("Price cannot be zero.");
             return;
         }
@@ -53,11 +57,14 @@ const NewProduct = ({setNewProduct}) => {
         try {
             const res = await axios.post("http://localhost:8080/add-product", {
                 userEmail,
-                pTitle,
-                pName,
-                pCategory,
-                pDescription,
-                pPrice
+                product_title,
+                product_name,
+                category,
+                product_description,
+                product_price,
+                quantity,
+                status,
+                listing_id
             });
             setMessage(res.data.message);
             setNewProduct(null); 
@@ -79,25 +86,25 @@ const NewProduct = ({setNewProduct}) => {
                                     <input
                                         type="text"
                                         name="product_title"
-                                        value={pTitle}
-                                        onChange={(e) => setPtitle(e.target.value)}
+                                        value={product_title}
+                                        onChange={(e) => setProductTitle(e.target.value)}
                                         placeholder="Product Title"
-                                        className="ptitle"
+                                        className="product_title"
                                     />
                                     <h3>Name:</h3>
                                     <input
                                         type="text"
                                         name="product_name"
-                                        value={pName}
-                                        onChange={(e) => setPname(e.target.value)}
+                                        value={product_name}
+                                        onChange={(e) => setProductName(e.target.value)}
                                         placeholder="Product Name"
                                         className="name"
                                     />
                                     <h3>Category:</h3>
                                     <select
                                         name="category"
-                                        value={pCategory}
-                                        onChange={(e) => setPcategory(e.target.value)}
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
                                         className="category-disp">
                                         <option value="">Select a Category</option>
                                         {categories.map((category, index) => (
@@ -109,24 +116,34 @@ const NewProduct = ({setNewProduct}) => {
                                     <h3>Description:</h3>
                                     <textarea
                                         name="product_description"
-                                        value={pDescription}
-                                        onChange={(e) => setPdescription(e.target.value)}
+                                        value={product_description}
+                                        onChange={(e) => setProductDescription(e.target.value)}
                                         placeholder="Product Description"
-                                        className="pdescription"
+                                        className="product_description"
                                     />
                                     <h3>Price: </h3>
                                     <input
                                         type="number"
                                         name="product_price"
-                                        value={pPrice}
-                                        onChange={(e) => setPprice(e.target.value)}
+                                        value={product_price}
+                                        onChange={(e) => setProductPrice(e.target.value)}
                                         placeholder="Price"
-                                        className="pprice"
+                                        className="product_price"
+                                        step="1"
+                                    />
+                                    <h3>Quantity: </h3>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={quantity}
+                                        onChange={(e) => setProductQuantity(e.target.value)}
+                                        placeholder="Quantity"
+                                        className="quantity"
                                         step="1"
                                     />
                                     <div className="submit-div">
-                                        <button className="submit-button" onClick={() => handleSaveProduct()}>
-                                            SUBMIT CHANGES
+                                        <button className="submit-button" onClick={handleSaveProduct}>
+                                            SUBMIT PRODUCT
                                         </button>
                                     </div>
                                 </div>
