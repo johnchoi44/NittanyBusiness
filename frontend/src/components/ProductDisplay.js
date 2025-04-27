@@ -5,7 +5,7 @@ import "../components-styles/ProductDisplay.css";
 import ProductCard from "./ProductCard";
 import placeholder from "../components-styles/images/nittanyicon.png";
 import back_img from "../components-styles/images/left-arrow.png";
-import Search from "./Search";
+import NewProduct from "./NewProduct";
 import { useMemo } from "react";
 import { useUser } from './UserContext';
 
@@ -23,6 +23,7 @@ const ProductDisplay = () => {
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
     const { userEmail } = useUser();
+    const [newProduct, setNewProduct] = useState(null)
     // for tracking product changes
     const [productData, setProductData] = useState(null);
 
@@ -206,6 +207,7 @@ const ProductDisplay = () => {
     // card click handler
     async function handleCardClick(product) {
         setActiveProduct(product);
+        setNewProduct(null);
         setProductData({
             product_title: product.product_title || "",
             product_name: product.product_name || "",
@@ -220,17 +222,27 @@ const ProductDisplay = () => {
         setActiveReviews(reviews);
     };
 
+    // new product click handler
+    const handleNewProductClick = () => {
+        setNewProduct(true)
+    }
+
     // back click handler
     const handleBackClick = () => {
         // clear active product and active reviews
+        setNewProduct(null)
         setActiveProduct(null);
         setActiveReviews([]);
     }
     
     return (
         <div>
-            <h1 className="manage-products">Manage Your Products</h1>
-            { activeProduct === null ? 
+            <div className="title-div">
+                <h1 className="manage-products">Manage Your Products</h1>
+                <button className="product-button" onClick={() => handleNewProductClick()}>Add an item</button>
+            </div>
+            {newProduct !== null && <NewProduct setNewProduct={setNewProduct}/>}
+            {activeProduct === null ? 
             ( 
             <div>
                 <div className="products-div">
@@ -245,7 +257,7 @@ const ProductDisplay = () => {
                             {/* Add category options here */}
                             <option value="default">Default</option>
                             {(uniqueParentCategories || []).map((category, index) => (
-                                <option value={category.parent_category}>{category.parent_category}</option>
+                                <option key={index} value={category.parent_category}>{category.parent_category}</option>
                             ))}
                         </select>
                         <h3 className="sort-prompt">Sort By</h3>
@@ -288,9 +300,9 @@ const ProductDisplay = () => {
             // Other Render Option: Specific Product Page
             <div className="col">
                 <div className="row">
-                    <img className="back" src={back_img} onClick={() => handleBackClick()}></img>
+                    <img className="back" src={back_img} onClick={() => handleBackClick()} alt="Back"></img>
                     <div className="product-display">
-                        <img className="pimage" src={placeholder}></img>
+                        <img className="pimage" src={placeholder} alt="Product"></img>
                     </div>
                     <div className="product-display">
                         <h3>Title:</h3>

@@ -49,3 +49,19 @@ h3 {
     transform: scale(1.00); /* Scales the element by 10% */
 }
 
+.title-div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+.product-button {
+    margin-right: 80px;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    background-color: rgba(30, 64, 124);
+    font-weight: bold;
+}

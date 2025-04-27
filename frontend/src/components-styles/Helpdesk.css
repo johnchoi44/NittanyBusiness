@@ -1,0 +1,141 @@
+/* Helpdesk.css */
+
+.helpdesk-container {
+  padding: 40px;
+}
+
+.helpdesk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+}
+
+.helpdesk-title {
+  font-size: 36px;
+  font-weight: bold;
+  color: rgba(30, 64, 124);
+}
+
+.logged-in-info {
+  text-align: right;
+}
+
+.logged-in-info p {
+  margin: 0;
+  font-size: 16px;
+  color: rgba(30, 64, 124);
+}
+
+.logout-button {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background-color: rgba(30, 64, 124);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.logout-button:hover {
+  background-color: rgba(30, 64, 250);
+  transform: scale(1.05);
+}
+
+.helpdesk-section {
+  margin-top: 40px;
+}
+
+.helpdesk-section h2 {
+  font-size: 28px;
+  color: rgba(30, 64, 124);
+  margin-bottom: 20px;
+}
+
+.input-search {
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 250px;
+  margin-right: 10px;
+  transition: all 0.3s ease;
+}
+
+.input-search:focus {
+  border-color: rgba(30, 64, 124);
+  background-color: #fff;
+}
+
+.search-button {
+  padding: 10px 20px;
+  background-color: rgba(30, 64, 124);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.search-button:hover {
+  background-color: rgba(30, 64, 250);
+  transform: scale(1.05);
+}
+
+.user-card {
+  margin-top: 20px;
+  padding: 20px;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pending-requests-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.toggle-button {
+  padding: 8px 16px;
+  background-color: rgba(30, 64, 124);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  margin-left: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.toggle-button:hover {
+  background-color: rgba(30, 64, 250);
+  transform: scale(1.05);
+}
+
+.request-item {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+}
+
+.request-item select {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+}
+
+.success-message {
+  color: green;
+  font-weight: bold;
+}

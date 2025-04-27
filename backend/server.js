@@ -43,7 +43,7 @@ app.post("/login", (req, res) => {
             if (!match) {
                 return res.status(401).json({ message: "Invalid password" });
             }
-            res.json({ message: "Login successful" });
+            res.json({ message: "Login successful", email: user.email, user_type: user.user_type });
 
         } catch (error) {
             console.error("Error comparing passwords:", error);  // Catch bcrypt errors
@@ -159,6 +159,51 @@ app.post("/submit-order", (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.status(201).json({ message: "Order submitted" });
+    });
+});
+
+// Fetch pending requests
+app.get("/helpdesk/pending-requests", (req, res) => {
+    const query = `SELECT * FROM Requests WHERE request_status = 1`;
+    db.all(query, [], (err, requests) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ requests });
+    });
+});
+
+// Update request status
+app.post("/helpdesk/update-request-status", (req, res) => {
+    const { request_id, new_status } = req.body;
+    const query = `UPDATE Requests SET request_status = ? WHERE request_id = ?`;
+    db.run(query, [new_status, request_id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Request status updated successfully" });
+    });
+});
+
+
+// Search user by email
+app.get("/helpdesk/user", (req, res) => {
+    const email = req.query.email?.trim();  // Trim spaces
+    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`; // Case insensitive
+
+    console.log("Searching for email:", email);  // Debugging output
+
+    db.get(query, [email], (err, user) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json({ user });
+    });
+});
+
+
+// Update user type (e.g., promote/demote users)
+app.post("/helpdesk/update-user", (req, res) => {
+    const { email, new_user_type } = req.body;
+    const query = `UPDATE Users SET user_type = ? WHERE email = ?`;
+    db.run(query, [new_user_type, email], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "User updated successfully" });
     });
 });
 
