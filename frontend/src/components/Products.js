@@ -192,7 +192,9 @@ const Products = () => {
         };
 
         if (product.quantity < orderDetails.quantity) {
+            alert("Order is not allowed: not enough stock left for this purchase.");
             setMessage("Order is not allowed: not enough stock left for this purchase.");
+            return;
         }
 
         navigate("/order-review", { state: { order: orderDetails }});
