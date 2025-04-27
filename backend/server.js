@@ -333,6 +333,31 @@ app.put('/update-product', (req, res) => {
     });
 });
 
+// Define the endpoint to add a product :: TODO: add product id
+app.put('/add-product', (req, res) => {
+    const { userEmail, product_title, product_name, category, product_description, product_price, status } = req.body;
+    console.log(req.body);
+    console.log(userEmail);
+    console.log(pTitle);
+    console.log(pName);
+    console.log(pCategory);
+    console.log(pDescription);
+    console.log(pPrice);
+    console.log(status);
+
+    const sql = `
+        INSERT INTO product_listings (product_title, product_name, category, product_description, seller_email, product_price, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(sql, [pTitle, pName, pCategory, pDescription, userEmail, pPrice, status], function(err) {
+        if (err) {
+            return res.status(500).json({ message: 'Error adding product', error: err.message });
+        }
+        return res.json({ message: 'Product added successfully', productId: this.lastID });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
 });
