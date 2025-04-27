@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser } from "./UserContext";
 import { useNavigate } from "react-router-dom";
+import "../components-styles/Helpdesk.css";
+
 
 const Helpdesk = () => {
-    const { userEmail, setUserEmail } = useUser();
+    const { userEmail, setUserEmail, userType } = useUser();
     const navigate = useNavigate();
 
     const [searchEmail, setSearchEmail] = useState("");
@@ -85,33 +87,44 @@ const Helpdesk = () => {
         navigate("/");
     };
 
-    return (
-    <div style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1>Helpdesk Admin Dashboard</h1>
-            <div>
-                <p>Logged in as: <strong>{userEmail}</strong></p>
-                <button onClick={handleLogout}>Logout</button>
+    // Access denied for sellers and buyers
+    if (!userEmail || userType !== "helpdesk") {
+        return (
+            <div className="helpdesk-container">
+                <h2>Access Denied</h2>
+                <p>You do not have permission to access this page.</p>
+                <button className="logout-button" onClick={() => navigate("/login")}>Login</button>
             </div>
-        </div>
+        );
+    }
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
+    return (
+        <div className="helpdesk-container">
+            <div className="helpdesk-header">
+                <h1 className="helpdesk-title">Helpdesk Admin Dashboard</h1>
+                <div className="logged-in-info">
+                    <p>Logged in as: <strong>{userEmail}</strong></p>
+                    <button className="logout-button" onClick={handleLogout}>Logout</button>
+                </div>
+            </div>
+
+            {error && <p className="error-message">{error}</p>}
+            {successMessage && <p className="success-message">{successMessage}</p>}
 
             {/* --- User Management Section --- */}
-            <section style={{ marginBottom: "40px" }}>
+            <section className="helpdesk-section">
                 <h2>User Management</h2>
                 <input
                     type="text"
+                    className="input-search"
                     placeholder="Enter user email"
                     value={searchEmail}
                     onChange={(e) => setSearchEmail(e.target.value)}
-                    style={{ marginRight: "10px" }}
                 />
-                <button onClick={handleSearch}>Search</button>
+                <button className="search-button" onClick={handleSearch}>Search</button>
 
                 {searchedUser && (
-                    <div style={{ marginTop: "20px", padding: "10px", border: "1px solid gray", borderRadius: "8px" }}>
+                    <div className="user-card">
                         <h3>User Found:</h3>
                         <p>Email: {searchedUser.email}</p>
                         <p>Current Type: {searchedUser.user_type}</p>
@@ -131,20 +144,20 @@ const Helpdesk = () => {
             </section>
 
             {/* --- Pending Requests Section --- */}
-            <section>
-                <h2>Pending Requests</h2>
-                <div style={{ marginBottom: "10px" }}>
+            <section className="helpdesk-section">
+                <div className="pending-requests-header">
+                    <h2>Pending Requests</h2>
                     {!showOnlyMyRequests ? (
-                        <button onClick={handleShowMyRequests}>Show My Requests</button>
+                        <button className="toggle-button" onClick={handleShowMyRequests}>Show My Requests</button>
                     ) : (
-                        <button onClick={handleShowAllRequests}>Show All Requests</button>
+                        <button className="toggle-button" onClick={handleShowAllRequests}>Show All Requests</button>
                     )}
                 </div>
 
                 {filteredRequests.length > 0 ? (
                     <ul>
                         {filteredRequests.map((req) => (
-                            <li key={req.request_id} style={{ marginBottom: "15px" }}>
+                            <li key={req.request_id} className="request-item">
                                 <strong>Request ID:</strong> {req.request_id} <br />
                                 <strong>Email:</strong> {req.sender_email} <br />
                                 <strong>Assigned Staff:</strong> {req.helpdesk_staff_email || "Unassigned"} <br />
