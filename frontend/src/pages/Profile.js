@@ -34,9 +34,9 @@ const Profile = () => {
     return (
         <div className="page-div">
             <NavBar />
-            {userType.length > 0 && (
+            {/* {userType.length > 0 && ( */}
             <OrderDisplay userType={userType} />
-            )}
+            {/* )} */}
             {userType !== 'seller' ?
             <ProductDisplay /> :
             <div></div>
