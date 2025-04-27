@@ -7,6 +7,7 @@ import back_img from "../components-styles/images/left-arrow.png";
 import Search from "./Search";
 import { useMemo } from "react";
 import { useUser } from './UserContext';
+import { useNavigate } from "react-router-dom";
 
 const Products = () => {
     const [data, setData] = useState([]);
@@ -21,6 +22,7 @@ const Products = () => {
     const [activeReviews, setActiveReviews] = useState([]);
     const [quantity, setQuantity] = useState(1);
     const { userEmail } = useUser();
+    const navigate = useNavigate();
 
     // Fetch products only when the component mounts
     useEffect(() => {
@@ -115,42 +117,7 @@ const Products = () => {
             setMessage(err.response?.data?.message || "Error occurred.");
             return null;
         }
-    };
-
-    // function for calling api to submit an order
-    const submitOrder = async (product) => {
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-
-        const seller_email = product.seller_email;
-        const listing_id = product.listing_id;
-        const buyer_email = userEmail;
-        const date = formattedDate;
-        const new_quantity = quantity;
-        const payment = product.product_price * quantity;
-
-        if (product.quantity < quantity) {
-            setMessage("Cannot Buy That Many");
-        }
-
-        try {
-            const res = await axios.post("http://localhost:8080/submit-order", {
-                params: {
-                    seller_email,
-                    listing_id,
-                    buyer_email,
-                    date,
-                    new_quantity,
-                    payment
-                }
-            });
-            alert("Order Submitted Successfully");
-            
-        } catch (err) {
-            alert(err.response?.data?.message || "Error occurred.");
-        }
-    }
-    
+    };    
 
     // filter out duplicate categories for display
     const uniqueParentCategories = useMemo(() => {
@@ -204,7 +171,20 @@ const Products = () => {
 
     // async function for creating an order for a specific product
     async function handleBuyClick(product) {
-        await submitOrder(product);
+        const orderDetails = {
+            listing_id: product.listing_id,
+            seller_email: product.seller_email,
+            product_title: product.product_title,
+            unit_price: parseFloat(product.product_price),
+            quantity,
+            total_price: parseFloat(product.product_price) * quantity,
+        };
+
+        if (product.quantity < orderDetails.quantity) {
+            setMessage("Order is not allowed: not enough stock left for this purchase.");
+        }
+
+        navigate("/order-review", { state: { order: orderDetails }});
     }
 
     // card click handler
@@ -224,7 +204,7 @@ const Products = () => {
 
     const handleQuantityChange = (event) => {
         setQuantity(Number(event.target.value));
-      };
+    };
     
     return (
         <div>
@@ -333,7 +313,7 @@ const Products = () => {
                                     </option>
                                     ))}
                                 </select>
-                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>
+                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>Order</button>
                                 <h2 className="in-stock">{activeProduct.quantity} In Stock</h2>
                             </div>
                             ) : (
