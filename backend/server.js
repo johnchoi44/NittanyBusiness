@@ -11,6 +11,26 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+// == Helper functions ==
+function runAsync(sql, params = []) {
+	return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve(this);
+        });
+	});
+}
+
+function allAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+// ======================
+
 // Register
 app.post("/register", async (req, res) => {
 	const {
@@ -91,16 +111,6 @@ app.post("/register", async (req, res) => {
 	}
 });
 
-// Helper function for register
-function runAsync(sql, params = []) {
-	return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            resolve(this);
-        });
-	});
-}
-
 // Login
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
@@ -139,7 +149,7 @@ app.get("/active-listings", (req, res) => {
         }
 
         res.json({ listings });
-        console.log("Listings fetched");
+        // console.log("Listings fetched");
     });
 });
 
@@ -227,6 +237,52 @@ app.get("/get-sub-categories", (req, res) => {
     });
 });
 
+// Fetch category hierarchy
+app.get("/category-hierarchy", (req, res) => {
+    const query = 'SELECT * FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching category hierarchy");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        // Transform categories into { parent_category: [category_name, ...] }
+        const groupedCategories = {};
+
+        categories.forEach(({ parent_category, category_name }) => {
+            if (!groupedCategories[parent_category]) {
+                groupedCategories[parent_category] = [];
+            }
+            groupedCategories[parent_category].push(category_name);
+        });
+
+        res.json(groupedCategories);
+        console.log("Categories hierarchy fetched");
+    });
+});
+
+// Fetch Sub Categories for given parent category
+app.get("/get-sub-categories", (req, res) => {
+    const parent_category = req.query.parent_category;
+    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
+    db.all(query, [parent_category], async (err, subCategories) => {
+        if (err) {
+            console.error("Error fetching sub categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!subCategories || subCategories.length === 0) {
+            return res.status(404).json({ message: "No sub categories found" });
+        }
+
+        res.json({ subCategories });
+        console.log("Sub categories fetched");
+        console.log(subCategories);
+    });
+});
+
 // Fetch review data (count and avg. rate) for listings
 app.get("/review-data", (req, res) => {
     const listing_id = req.query.listing_id
@@ -263,37 +319,92 @@ app.get("/reviews", (req, res) => {
     });
 });
 
-app.post("/submit-order", (req, res) => {
-    const { seller_email, listing_id, buyer_email, date, quantity, payment } = req.body.params;
-
-    if (!seller_email || !listing_id || !buyer_email || !date || !quantity || !payment) {
-        return res.status(400).json({ message: "Missing required fields" });
+// Fetch credit card info
+app.get("/credit-cards", (req, res) => {
+    const owner = req.query.owner_email;
+    if (!owner) {
+        return res.status(400).json({ error: "owner_email is required" });
     }
 
-    const stmt = `
-        INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment)
-        VALUES (?, ?, ?, ?, ?, ?)
+    const sql = `
+        SELECT credit_card_num, card_type, expire_month, expire_year, security_code
+        FROM Credit_Cards
+        WHERE owner_email = ?
     `;
-
-    db.run(stmt, [seller_email, listing_id, buyer_email, date, quantity, payment], function (err) {
+    db.all(sql, [owner], (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+        console.error("Error fetching credit cards:", err);
+        return res.status(500).json({ error: err.message });
         }
-
-        // 🛒 After inserting order, subtract quantity from Product_Listings
-        const updateStmt = `
-            UPDATE Product_Listings
-            SET quantity = quantity - ?
-            WHERE listing_id = ?
-        `;
-        db.run(updateStmt, [quantity, listing_id], function (err2) {
-            if (err2) {
-                return res.status(500).json({ error: "Order placed but failed to update product quantity." });
-            }
-
-            res.status(201).json({ message: "Order submitted and product quantity updated." });
-        });
+        return res.json({ cards: rows });
     });
+});
+
+app.post("/checkout", async (req, res) => {
+    const {
+        seller_email,
+        listing_id,
+        buyer_email,
+        date,
+        quantity,
+        payment,
+        credit_card,
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        await runAsync(
+            `INSERT OR IGNORE INTO Credit_Cards
+                (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                credit_card.credit_card_num,
+                credit_card.card_type,
+                credit_card.expire_month,
+                credit_card.expire_year,
+                credit_card.security_code,
+                buyer_email,
+            ]
+        );
+
+        await runAsync(
+            `INSERT INTO Orders
+                (seller_email, listing_id, buyer_email, date, quantity, payment)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [seller_email, listing_id, buyer_email, date, quantity, payment]
+        );
+
+        const rows = await allAsync(
+            `SELECT quantity FROM Product_Listings WHERE listing_id = ?`,
+            [listing_id]
+        );
+        if (!rows.length) throw new Error("Listing not found");
+        const currentQty = rows[0].quantity;
+        const newQty = currentQty - quantity;
+        const newStatus = newQty <= 0 ? 2 : 1;
+
+        await runAsync(
+            `UPDATE Product_Listings
+                SET quantity = ?, status = ?
+                WHERE listing_id = ?`,
+            [newQty, newStatus, listing_id]
+        );
+
+        await runAsync(
+            `UPDATE Sellers
+                SET balance = balance + ?
+                WHERE email = ?`,
+            [payment, seller_email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Checkout successful" });
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Fetch pending requests
@@ -425,7 +536,7 @@ app.get("/get-product-name", (req, res) => {
             return res.status(500).send("Database error");
         }
         if (product) {
-            console.log("Product Requested");
+            // console.log("Product Requested");
             res.json({ product });
         }
     });
