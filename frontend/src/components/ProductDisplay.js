@@ -19,6 +19,7 @@ const ProductDisplay = () => {
     const [message, setMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("default");
+    const [categoryHierarchy, setCategoryHierarchy] = useState([]);
     const [reviews, setReviews] = useState({});
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
@@ -51,6 +52,14 @@ const ProductDisplay = () => {
             try {
                 const res = await axios.get("http://localhost:8080/categories");
                 setCategories(res.data.categories);  // Assuming response contains categories array
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+            }
+
+            try {
+                const res = await axios.get("http://localhost:8080/category-hierarchy");
+                setCategoryHierarchy(res.data);  // Assuming response contains categories array
+                console.log(res.data);
             } catch (err) {
                 setMessage(err.response?.data?.message || "Error occurred.");
             }
@@ -170,9 +179,9 @@ const ProductDisplay = () => {
       
         // apply category filter
         if (selectedCategory !== "default") {
-          filtered = filtered.filter(
-            (product) => product.category.toLowerCase() === selectedCategory.toLowerCase()
-          );
+            filtered = filtered.filter(
+              (product) => categoryHierarchy[selectedCategory].includes(product.category)
+            );
         }
       
         // apply search filter
@@ -282,6 +291,7 @@ const ProductDisplay = () => {
                                 <ProductCard
                                     key={index}
                                     title={product.product_title}
+                                    category={product.category}
                                     description={product.product_description}
                                     seller={product.seller_email}
                                     image={placeholder}

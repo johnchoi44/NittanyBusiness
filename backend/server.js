@@ -181,6 +181,52 @@ app.get("/categories", (req, res) => {
     });
 });
 
+// Fetch category hierarchy
+app.get("/category-hierarchy", (req, res) => {
+    const query = 'SELECT * FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching category hierarchy");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        // Transform categories into { parent_category: [category_name, ...] }
+        const groupedCategories = {};
+
+        categories.forEach(({ parent_category, category_name }) => {
+            if (!groupedCategories[parent_category]) {
+                groupedCategories[parent_category] = [];
+            }
+            groupedCategories[parent_category].push(category_name);
+        });
+
+        res.json(groupedCategories);
+        console.log("Categories hierarchy fetched");
+    });
+});
+
+// Fetch Sub Categories for given parent category
+app.get("/get-sub-categories", (req, res) => {
+    const parent_category = req.query.parent_category;
+    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
+    db.all(query, [parent_category], async (err, subCategories) => {
+        if (err) {
+            console.error("Error fetching sub categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!subCategories || subCategories.length === 0) {
+            return res.status(404).json({ message: "No sub categories found" });
+        }
+
+        res.json({ subCategories });
+        console.log("Sub categories fetched");
+        console.log(subCategories);
+    });
+});
+
 // Fetch review data (count and avg. rate) for listings
 app.get("/review-data", (req, res) => {
     const listing_id = req.query.listing_id

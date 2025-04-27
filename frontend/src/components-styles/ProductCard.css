@@ -34,6 +34,12 @@
 .title {
     font-size: 16px;
     font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.category {
+    font-size: 15px;
+    margin-top: 0px;
 }
 
 .description {
