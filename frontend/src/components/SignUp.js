@@ -12,13 +12,13 @@ const SignUp = () => {
     const [address, setAddress] = useState("");
     const [city, setCity] = useState("");
     const [zipcode, setZipcode] = useState("");
+    const [cardType, setCardType] = useState("");
     const [creditNum, setCreditNum] = useState("");
     const [expDate, setExpDate] = useState("");
     const [cvv, setCVV] = useState("");
     const [bankRoutingNum, setBankRoutingNum] = useState("");
     const [bankAccountNum, setBankAccountNum] = useState("");
     const [balance, setBalance] = useState("");
-
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
 
@@ -57,14 +57,41 @@ const SignUp = () => {
 
     const handleSignUp = async (e) => {
         e.preventDefault();
+    
+        const payload = {
+            email,
+            password,
+            user_type: userType,
+            business_name: businessName,
+            address: {
+                street: address,
+                city,
+                zipcode,
+            },
+        };
+    
+        if (userType === "buyer") {
+            payload.credit_card = {
+                card_type: cardType,
+                credit_card_num: creditNum.replace(/-/g, ""),
+                expire_month: expDate.split("-")[1],
+                expire_year: expDate.split("-")[0],
+                security_code: cvv,
+            };
+        }
+    
+        if (userType === "seller") {
+            payload.bank = {
+                bank_routing_number: bankRoutingNum.replace(/-/g, ""),
+                bank_account_number: bankAccountNum,
+                balance,
+            };
+        }
+    
         try {
-            const res = await axios.post("http://localhost:8080/register", {
-                email,
-                password,
-                user_type: userType,
-            });
+            const res = await axios.post("http://localhost:8080/register", payload);
             setMessage(`Welcome ${res.data.user_type}! User ID: ${res.data.user_id}`);
-            navigate("/");
+            navigate("/login");
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
         }
@@ -85,7 +112,11 @@ const SignUp = () => {
                                     <fieldset>
                                         <div className="form-select">
                                             <p className="form-label">Select Card Type</p>
-                                            <select>
+                                            <select
+                                                value={cardType}
+                                                onChange={e => setCardType(e.target.value)}
+                                                required
+                                            >
                                                 <option value="master">Master</option>
                                                 <option value="visa">Visa</option>
                                                 <option value="discover">Discover</option>
