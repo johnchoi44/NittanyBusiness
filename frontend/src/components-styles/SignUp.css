@@ -59,11 +59,10 @@
     all: unset;
     margin-top: 50px;
     color: #041E42;
-    transition: font-weight 0.2s ease, text-decoration 0.3s ease;
 }
 
 #form-link:hover {
-    font-weight: bold;
+    cursor: pointer;
     text-decoration: underline;
 }
 
@@ -91,6 +90,13 @@
     transform: translateY(-3px);
 }
 
+.form-box {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .form-title {
     font-size: 25px;
     font-weight: bold;
@@ -98,6 +104,11 @@
 
 .form-label {
     margin-top: 30px;
+}
+
+.error-label {
+    color: red;
+    font-weight: bold;
 }
 
 fieldset {
