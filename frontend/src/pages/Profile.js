@@ -37,7 +37,7 @@ const Profile = () => {
             {/* {userType.length > 0 && ( */}
             <OrderDisplay userType={userType} />
             {/* )} */}
-            {userType !== 'seller' ?
+            {userType === 'seller' ?
             <ProductDisplay /> :
             <div></div>
             }
