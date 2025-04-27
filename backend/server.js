@@ -11,6 +11,26 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+// == Helper functions ==
+function runAsync(sql, params = []) {
+	return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve(this);
+        });
+	});
+}
+
+function allAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+// ======================
+
 // Register
 app.post("/register", async (req, res) => {
 	const {
@@ -91,16 +111,6 @@ app.post("/register", async (req, res) => {
 	}
 });
 
-// Helper function for register
-function runAsync(sql, params = []) {
-	return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            resolve(this);
-        });
-	});
-}
-
 // Login
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
@@ -139,7 +149,7 @@ app.get("/active-listings", (req, res) => {
         }
 
         res.json({ listings });
-        console.log("Listings fetched");
+        // console.log("Listings fetched");
     });
 });
 
@@ -177,7 +187,7 @@ app.get("/categories", (req, res) => {
         }
 
         res.json({ categories });
-        console.log("Categories fetched");
+        // console.log("Categories fetched");
     });
 });
 
@@ -217,23 +227,92 @@ app.get("/reviews", (req, res) => {
     });
 });
 
-// Submit an Order to Orders table
-app.post("/submit-order", (req, res) => {
-    const {seller_email, listing_id, buyer_email, date, quantity, payment} = req.body.params;
-    const stmt = 'INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment) VALUES (?,?,?,?,?,?)';
-    db.run(stmt, [
+// Fetch credit card info
+app.get("/credit-cards", (req, res) => {
+    const owner = req.query.owner_email;
+    if (!owner) {
+        return res.status(400).json({ error: "owner_email is required" });
+    }
+
+    const sql = `
+        SELECT credit_card_num, card_type, expire_month, expire_year, security_code
+        FROM Credit_Cards
+        WHERE owner_email = ?
+    `;
+    db.all(sql, [owner], (err, rows) => {
+        if (err) {
+        console.error("Error fetching credit cards:", err);
+        return res.status(500).json({ error: err.message });
+        }
+        return res.json({ cards: rows });
+    });
+});
+
+app.post("/checkout", async (req, res) => {
+    const {
         seller_email,
         listing_id,
         buyer_email,
         date,
         quantity,
-        payment
-    ], function (err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: "Order submitted" });
-    });
+        payment,
+        credit_card,
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        await runAsync(
+            `INSERT OR IGNORE INTO Credit_Cards
+                (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                credit_card.credit_card_num,
+                credit_card.card_type,
+                credit_card.expire_month,
+                credit_card.expire_year,
+                credit_card.security_code,
+                buyer_email,
+            ]
+        );
+
+        await runAsync(
+            `INSERT INTO Orders
+                (seller_email, listing_id, buyer_email, date, quantity, payment)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [seller_email, listing_id, buyer_email, date, quantity, payment]
+        );
+
+        const rows = await allAsync(
+            `SELECT quantity FROM Product_Listings WHERE listing_id = ?`,
+            [listing_id]
+        );
+        if (!rows.length) throw new Error("Listing not found");
+        const currentQty = rows[0].quantity;
+        const newQty = currentQty - quantity;
+        const newStatus = newQty <= 0 ? 2 : 1;
+
+        await runAsync(
+            `UPDATE Product_Listings
+                SET quantity = ?, status = ?
+                WHERE listing_id = ?`,
+            [newQty, newStatus, listing_id]
+        );
+
+        await runAsync(
+            `UPDATE Sellers
+                SET balance = balance + ?
+                WHERE email = ?`,
+            [payment, seller_email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Checkout successful" });
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Fetch pending requests
@@ -365,7 +444,7 @@ app.get("/get-product-name", (req, res) => {
             return res.status(500).send("Database error");
         }
         if (product) {
-            console.log("Product Requested");
+            // console.log("Product Requested");
             res.json({ product });
         }
     });
