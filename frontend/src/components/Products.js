@@ -129,6 +129,10 @@ const Products = () => {
 
     // function for calling api to submit an order
     const submitOrder = async (product) => {
+        if (quantity > product.quantity) {
+            alert("Cannot buy more than available in stock!");
+            return;
+        }
         const today = new Date();
         const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
 
@@ -136,11 +140,12 @@ const Products = () => {
         const listing_id = product.listing_id;
         const buyer_email = userEmail;
         const date = formattedDate;
-        const new_quantity = quantity;
+        const new_quantity = quantity || 1; // default to 1
         const payment = product.product_price * quantity;
 
         if (product.quantity < quantity) {
             setMessage("Cannot Buy That Many");
+            return;
         }
 
         try {
@@ -150,12 +155,12 @@ const Products = () => {
                     listing_id,
                     buyer_email,
                     date,
-                    new_quantity,
+                    quantity: new_quantity,
                     payment
                 }
             });
             alert("Order Submitted Successfully");
-            
+
         } catch (err) {
             alert(err.response?.data?.message || "Error occurred.");
         }

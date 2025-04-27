@@ -263,22 +263,36 @@ app.get("/reviews", (req, res) => {
     });
 });
 
-// Submit an Order to Orders table
 app.post("/submit-order", (req, res) => {
-    const {seller_email, listing_id, buyer_email, date, quantity, payment} = req.body.params;
-    const stmt = 'INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment) VALUES (?,?,?,?,?,?)';
-    db.run(stmt, [
-        seller_email,
-        listing_id,
-        buyer_email,
-        date,
-        quantity,
-        payment
-    ], function (err) {
+    const { seller_email, listing_id, buyer_email, date, quantity, payment } = req.body.params;
+
+    if (!seller_email || !listing_id || !buyer_email || !date || !quantity || !payment) {
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const stmt = `
+        INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(stmt, [seller_email, listing_id, buyer_email, date, quantity, payment], function (err) {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        res.status(201).json({ message: "Order submitted" });
+
+        // 🛒 After inserting order, subtract quantity from Product_Listings
+        const updateStmt = `
+            UPDATE Product_Listings
+            SET quantity = quantity - ?
+            WHERE listing_id = ?
+        `;
+        db.run(updateStmt, [quantity, listing_id], function (err2) {
+            if (err2) {
+                return res.status(500).json({ error: "Order placed but failed to update product quantity." });
+            }
+
+            res.status(201).json({ message: "Order submitted and product quantity updated." });
+        });
     });
 });
 
