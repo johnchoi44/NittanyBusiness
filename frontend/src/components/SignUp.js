@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import '../components-styles/LoginRegistration.css'
+import '../components-styles/SignUp.css'
 
 const SignUp = () => {
     const [userType, setUserType] = useState(""); // default user type is buyer
