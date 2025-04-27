@@ -25,6 +25,7 @@ db.run(`
     CREATE TABLE IF NOT EXISTS Helpdesk (
         email TEXT PRIMARY KEY,
         position TEXT,
+        user_type TEXT DEFAULT 'helpdesk',
         FOREIGN KEY (email) REFERENCES Users(email)
     )
 `);
@@ -47,6 +48,7 @@ db.run(`
         email TEXT PRIMARY KEY,
         business_name TEXT,
         buyer_address_id TEXT,
+        user_type TEXT DEFAULT 'buyer',
         FOREIGN KEY (email) REFERENCES Users(email),
         FOREIGN KEY (buyer_address_id) REFERENCES Address(address_id)
     )
@@ -89,6 +91,7 @@ db.run(`
         bank_routing_number TEXT,
         bank_account_number TEXT,
         balance REAL DEFAULT 0.0,
+        user_type TEXT DEFAULT 'seller',
         FOREIGN KEY (email) REFERENCES Users(email),
         FOREIGN KEY (business_address_id) REFERENCES Address(address_id)
     )
