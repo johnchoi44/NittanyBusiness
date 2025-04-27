@@ -23,6 +23,7 @@ const ProductDisplay = () => {
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
     const { userEmail } = useUser();
+    const [newProduct, setNewProduct] = useState(null)
     // for tracking product changes
     const [productData, setProductData] = useState(null);
 
@@ -223,101 +224,59 @@ const ProductDisplay = () => {
     // back click handler
     const handleBackClick = () => {
         // clear active product and active reviews
+        setNewProduct(null)
         setActiveProduct(null);
         setActiveReviews([]);
     }
     
     return (
         <div>
-            <h1 className="manage-products">Manage Your Products</h1>
-            { activeProduct === null ? 
-            ( 
-            <div>
-                <div className="products-div">
-                    <div className="sorting-div">
-                        <h3 className="sort-prompt">Category</h3>
-                        <select
-                            className="sort-options"
-                            id="category-options"
-                            name="category"
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}>
-                            {/* Add category options here */}
-                            <option value="default">Default</option>
-                            {(uniqueParentCategories || []).map((category, index) => (
-                                <option value={category.parent_category}>{category.parent_category}</option>
-                            ))}
-                        </select>
-                        <h3 className="sort-prompt">Sort By</h3>
-                        <select 
-                            className="sort-options" 
-                            id="sorting-options" 
-                            name="sort"
-                            value={sortOption}
-                            onChange={(e) => setSortOption(e.target.value)}>
-                            <option value="default">Default</option>
-                            <option value="price-low-high">Price: Low to High</option>
-                            <option value="price-high-low">Price: High to Low</option>
-                            <option value="alphabetical-a-z">Alphabetical: A-Z</option>
-                            <option value="alphabetical-z-a">Alphabetical: Z-A</option>
-                            <option value="product-reviews-high-low"># Reviews</option>
-                            <option value="seller-reviews-high-low">Avg. Rating</option>
-                        </select>
-                    </div>
-                    <div className="product-cards-div">
-                    {displayData.length > 0 ? (
-                            displayData.map((product, index) => (
-                                <ProductCard
-                                    key={index}
-                                    title={product.product_title}
-                                    description={product.product_description}
-                                    seller={product.seller_email}
-                                    image={placeholder}
-                                    price={product.product_price}
-                                    reviewData={reviews[product.listing_id]}
-                                    onClick={() => handleCardClick(product)}
-                                />
-                            ))
-                        ) : (
-                            <p className="loading">Loading...</p>
-                        )}
-                    </div>
-                </div>
+            <div className="title-div">
+                <h1 className="manage-products">Manage Your Products</h1>
+                <button className="product-button" onClick={() => setNewProduct({})}>Add an item</button>
             </div>
-            ) : (
-            // Other Render Option: Specific Product Page
-            <div className="col">
-                <div className="row">
-                    <img className="back" src={back_img} onClick={() => handleBackClick()}></img>
-                    <div className="product-display">
-                        <img className="pimage" src={placeholder}></img>
-                    </div>
-                    <div className="product-display">
+            {newProduct !== null ? (
+                // Render New Product Form
+                <div className="new-product-div">
+                    <h2>Add a New Product</h2>
+                    <div className="new-product-form">
                         <h3>Title:</h3>
                         <input
                             type="text"
                             name="product_title"
-                            value={productData.product_title}
-                            onChange={handleChange}
+                            value={newProduct.product_title || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    product_title: e.target.value,
+                                }))
+                            }
                             placeholder="Product Title"
-                            className="ptitle"
-                        />
+                            className="new-product-title"/>
                         <h3>Name:</h3>
                         <input
                             type="text"
                             name="product_name"
-                            value={productData.product_name}
-                            onChange={handleChange}
+                            value={newProduct.product_name || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    product_name: e.target.value,
+                                }))
+                            }
                             placeholder="Product Name"
-                            className="name"
-                        />
+                            className="new-product-name"/>
                         <h3>Category:</h3>
                         <select
                             name="category"
-                            value={productData.category}
-                            onChange={handleChange}
-                            className="category-disp"
-                        >
+                            value={newProduct.category || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    category: e.target.value,
+                                }))
+                            }
+                            className="new-product-category">
                             <option value="">Select a Category</option>
                             {categories.map((category, index) => (
                                 <option key={index} value={category.parent_category}>
@@ -328,70 +287,222 @@ const ProductDisplay = () => {
                         <h3>Description:</h3>
                         <textarea
                             name="product_description"
-                            value={productData.product_description}
-                            onChange={handleChange}
+                            value={newProduct.product_description || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    product_description: e.target.value,
+                                }))
+                            }
                             placeholder="Product Description"
-                            className="pdescription"
-                        />
-                        <h2 className="pseller">
-                            Seller: {activeProduct.seller_email}
-                        </h2>
-                        <div className="prating-div">
-                            <h2 className="pstar-logo">
-                                ★
-                            </h2>
-                            <h2 className="prating">
-                                {reviews[activeProduct.listing_id]?.average_rating ?? "-"}/5
-                            </h2>
-                            <h2 className="preview-count">
-                                ({reviews[activeProduct.listing_id]?.total_reviews ?? "?"})
-                            </h2>
-                        </div>
-                        <h3>Price: </h3>
+                            className="new-product-description"/>
+                        <h3>Price:</h3>
                         <input
                             type="number"
                             name="product_price"
-                            value={productData.product_price}
-                            onChange={handleChange}
+                            value={newProduct.product_price || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    product_price: e.target.value,
+                                }))
+                            }
                             placeholder="Price"
-                            className="pprice"
-                            step="1"
-                        />
-                        <h3>Active: </h3>
+                            className="new-product-price"
+                            step="1"/>
+                        <h3>Active:</h3>
                         <select
                             name="status"
-                            value={productData.status}
-                            onChange={handleChange}
-                            className="active"
-                        >
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
+                            value={newProduct.status || ""}
+                            onChange={(e) =>
+                                setNewProduct((prev) => ({
+                                    ...prev,
+                                    status: e.target.value,
+                                }))
+                            }
+                            className="new-product-status">
+                            <option value="0">Inactive</option>
+                            <option value="1">Active</option>
                         </select>
-                        <div className="submit-change-div">
-                            <button className="submit-changes-button" onClick={() => handleSaveChanges()}>
-                                SUBMIT CHANGES
+                        <div className="new-product-actions">
+                            <button
+                                className="save-new-product-button"
+                                onClick={async () => {
+                                    try {
+                                        await axios.post("http://localhost:8080/add-product", newProduct);
+                                        alert("Product added successfully!");
+                                        setNewProduct(null); // Clear the form
+                                    } catch (error) {
+                                        console.error("Error adding product:", error);
+                                        alert("Failed to add product.");
+                                    }
+                                }}>
+                                Save Product
+                            </button>
+                            <button
+                                className="cancel-new-product-button"
+                                onClick={() => setNewProduct(null)}>
+                                Cancel
                             </button>
                         </div>
-                        
                     </div>
                 </div>
-                <div className="reviews-div">
-                    <h1>Buyer Feedback:</h1>
-                    <hr />
-                    {activeReviews && activeReviews.length > 0 ? 
-                        (
-                        activeReviews.map((review, index) => (
-                            <div className="review-data-div" key={index}>
-                                <h2 className="review-star">{"★".repeat(review.rate)}</h2>
-                                <p className="review-desc">{review.review_desc}</p>
-                            </div>
-                            ))
-                        ) : (
-                        <h2>No Reviews Yet</h2>
-                    )}
+            ) : activeProduct === null ? (
+                // Render Product List
+                <div>
+                    <div className="products-div">
+                        <div className="sorting-div">
+                            <h3 className="sort-prompt">Category</h3>
+                            <select
+                                className="sort-options"
+                                id="category-options"
+                                name="category"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}>
+                                <option value="default">Default</option>
+                                {(uniqueParentCategories || []).map((category, index) => (
+                                    <option value={category.parent_category} key={index}>
+                                        {category.parent_category}
+                                    </option>
+                                ))}
+                            </select>
+                            <h3 className="sort-prompt">Sort By</h3>
+                            <select
+                                className="sort-options"
+                                id="sorting-options"
+                                name="sort"
+                                value={sortOption}
+                                onChange={(e) => setSortOption(e.target.value)}>
+                                <option value="default">Default</option>
+                                <option value="price-low-high">Price: Low to High</option>
+                                <option value="price-high-low">Price: High to Low</option>
+                                <option value="alphabetical-a-z">Alphabetical: A-Z</option>
+                                <option value="alphabetical-z-a">Alphabetical: Z-A</option>
+                                <option value="product-reviews-high-low"># Reviews</option>
+                                <option value="seller-reviews-high-low">Avg. Rating</option>
+                            </select>
+                        </div>
+                        <div className="product-cards-div">
+                            {displayData.length > 0 ? (
+                                displayData.map((product, index) => (
+                                    <ProductCard
+                                        key={index}
+                                        title={product.product_title}
+                                        description={product.product_description}
+                                        seller={product.seller_email}
+                                        image={placeholder}
+                                        price={product.product_price}
+                                        reviewData={reviews[product.listing_id]}
+                                        onClick={() => handleCardClick(product)}/>
+                                ))
+                            ) : (
+                                <p className="loading">Loading...</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                // Render Active Product Details
+                <div className="col">
+                    <div className="row">
+                        <img className="back" src={back_img} onClick={() => handleBackClick()}></img>
+                        <div className="product-display">
+                            <img className="pimage" src={placeholder}></img>
+                        </div>
+                        <div className="product-display">
+                            <h3>Title:</h3>
+                            <input
+                                type="text"
+                                name="product_title"
+                                value={productData.product_title}
+                                onChange={handleChange}
+                                placeholder="Product Title"
+                                className="ptitle"/>
+                            <h3>Name:</h3>
+                            <input
+                                type="text"
+                                name="product_name"
+                                value={productData.product_name}
+                                onChange={handleChange}
+                                placeholder="Product Name"
+                                className="name"/>
+                            <h3>Category:</h3>
+                            <select
+                                name="category"
+                                value={productData.category}
+                                onChange={handleChange}
+                                className="category-disp">
+                                <option value="">Select a Category</option>
+                                {categories.map((category, index) => (
+                                    <option key={index} value={category.parent_category}>
+                                        {category.parent_category}
+                                    </option>
+                                ))}
+                            </select>
+                            <h3>Description:</h3>
+                            <textarea
+                                name="product_description"
+                                value={productData.product_description}
+                                onChange={handleChange}
+                                placeholder="Product Description"
+                                className="pdescription"/>
+                            <h2 className="pseller">
+                                Seller: {activeProduct.seller_email}
+                            </h2>
+                            <div className="prating-div">
+                                <h2 className="pstar-logo">
+                                    ★
+                                </h2>
+                                <h2 className="prating">
+                                    {reviews[activeProduct.listing_id]?.average_rating ?? "-"}/5
+                                </h2>
+                                <h2 className="preview-count">
+                                    ({reviews[activeProduct.listing_id]?.total_reviews ?? "?"})
+                                </h2>
+                            </div>
+                            <h3>Price: </h3>
+                            <input
+                                type="number"
+                                name="product_price"
+                                value={productData.product_price}
+                                onChange={handleChange}
+                                placeholder="Price"
+                                className="pprice"
+                                step="1"/>
+                            <h3>Active: </h3>
+                            <select
+                                name="status"
+                                value={productData.status}
+                                onChange={handleChange}
+                                className="active">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                            <div className="submit-change-div">
+                                <button className="submit-changes-button" onClick={() => handleSaveChanges()}>
+                                    SUBMIT CHANGES
+                                </button>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <div className="reviews-div">
+                        <h1>Buyer Feedback:</h1>
+                        <hr />
+                        {activeReviews && activeReviews.length > 0 ? 
+                            (
+                            activeReviews.map((review, index) => (
+                                <div className="review-data-div" key={index}>
+                                    <h2 className="review-star">{"★".repeat(review.rate)}</h2>
+                                    <p className="review-desc">{review.review_desc}</p>
+                                </div>
+                                ))
+                            ) : (
+                            <h2>No Reviews Yet</h2>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );
