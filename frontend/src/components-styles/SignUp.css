@@ -1,0 +1,141 @@
+.sign-up-container {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+        url('../components-styles/images/sign-up-image.jpg');
+    background-size: auto 100%;
+    background-position: right center;
+    background-repeat: no-repeat;
+}
+
+.side-bar {
+    height: 100vh;
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #f5f5f5;
+    border-top-right-radius: 50px;
+    border-bottom-right-radius: 50px;
+}
+
+#user-type-form {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+#title {
+    margin-bottom: 40px;
+    font-size: 35px;
+}
+
+.role-btn {
+    background-color: white;
+    color: #041E42;
+    padding-top: 7%;
+    padding-bottom: 7%;
+    margin-top: 20px;
+    text-align: center;
+    font-size: 20px;
+    border: none;
+    border-radius: 15px;
+    transition: background-color 0.4s ease, transform 0.2s ease;
+}
+
+.role-btn:hover {
+    color: white;
+    background-color: #041E42;
+    transform: translateY(-3px);
+}
+
+#form-link {
+    all: unset;
+    margin-top: 50px;
+    color: #041E42;
+}
+
+#form-link:hover {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* Sign-up Form */
+.input-form {
+    width: 70%;
+}
+
+#back-btn {
+    all: unset;
+}
+
+#submit-btn {
+    all: unset;
+    align-self: flex-end;
+    margin-top: 50px;
+    color: white;
+    background-color: #041E42;
+    padding: 3% 6%;
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+}
+
+#submit-btn:hover {
+    transform: translateY(-3px);
+}
+
+.form-box {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form-title {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.form-label {
+    margin-top: 30px;
+}
+
+.error-label {
+    color: red;
+    font-weight: bold;
+}
+
+fieldset {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+}
+
+input {
+    all: unset;
+    background-color: white;
+    padding: 2.5%;
+    border-radius: 15px;
+}
+
+select {
+    all: unset;
+    background-color: white;
+    padding: 2.5%;
+    border-radius: 15px;
+}
+
+/* Disable spinner (up & down arrow button) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

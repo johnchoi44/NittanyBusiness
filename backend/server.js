@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
+const { randomUUID } = require("crypto");
 const db = require("./db");
 require("dotenv").config();
 
@@ -12,20 +13,93 @@ const PORT = process.env.PORT || 8080;
 
 // Register
 app.post("/register", async (req, res) => {
-    const { email, password, user_type } = req.body;
-    const hashed = await bcrypt.hash(password, 10);
+	const {
+        email,
+        password,
+        user_type,
+        business_name,
+        address: { street, city, zipcode, state = "" } = {},
+        credit_card,
+        bank,
+	} = req.body;
 
-    const stmt = `INSERT INTO users (email, password_hash, user_type) VALUES (?, ?, ?)`;
-    db.run(stmt, [email, hashed, user_type], function (err) {
-        if (err) {
-            if (err.message.includes("UNIQUE constraint")) {
-                return res.status(409).json({ message: "Email already exists" });
-            }
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: "User registered", user_id: this.lastID });
-    });
+	try {
+        const hashed = await bcrypt.hash(password, 10);
+        await runAsync(
+            `INSERT INTO users (email, password_hash, user_type)
+            VALUES (?, ?, ?)`,
+            [email, hashed, user_type]
+	);
+
+	await runAsync(
+		`INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)
+		VALUES (?, ?, ?)`,
+		[zipcode, city, state]
+	);
+
+	const addressId = randomUUID();
+	await runAsync(
+		`INSERT INTO Address (address_id, zipcode, street_num, street_name)
+		VALUES (?, ?, ?, ?)`,
+		[addressId, zipcode, "", street]
+	);
+
+	if (user_type === "buyer") {
+		// a) Buyer table
+		await runAsync(
+		`INSERT INTO Buyer (email, business_name, buyer_address_id)
+		VALUES (?, ?, ?)`,
+		[email, business_name, addressId]
+		);
+
+		await runAsync(
+		`INSERT INTO Credit_Cards 
+            (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		[
+            credit_card.credit_card_num,
+            credit_card.card_type,
+            credit_card.expire_month,
+            credit_card.expire_year,
+            credit_card.security_code,
+            email,
+		]
+		);
+	} else if (user_type === "seller") {
+		await runAsync(
+		`INSERT INTO Sellers
+			(email, business_name, business_address_id, bank_routing_number, bank_account_number, balance)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		[
+			email,
+			business_name,
+			addressId,
+			bank.bank_routing_number,
+			bank.bank_account_number,
+			bank.balance,
+		]
+		);
+	}
+
+	res.status(201).json({ message: "User successfully registered", user_id: email, user_type });
+	} catch (err) {
+	if (err.message.includes("UNIQUE constraint")) {
+		return res.status(409).json({ message: "Email already exists" });
+	}
+        console.error(err);
+        res.status(500).json({ error: err.message });
+	}
 });
+
+// Helper function for register
+function runAsync(sql, params = []) {
+	return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve(this);
+        });
+	});
+}
 
 // Login
 app.post("/login", (req, res) => {
@@ -121,7 +195,7 @@ app.get("/review-data", (req, res) => {
         }
 
         res.json({ reviews });
-        console.log("review data fetched");
+        // console.log("review data fetched");
     });
 });
 
