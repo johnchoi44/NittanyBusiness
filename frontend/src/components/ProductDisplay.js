@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../components-styles/Products.css";
+import "../components-styles/ProductDisplay.css";
 import ProductCard from "./ProductCard";
 import placeholder from "../components-styles/images/nittanyicon.png";
 import back_img from "../components-styles/images/left-arrow.png";
@@ -8,7 +9,9 @@ import Search from "./Search";
 import { useMemo } from "react";
 import { useUser } from './UserContext';
 
-const Products = () => {
+
+// component specifically for sellers to manage their products
+const ProductDisplay = () => {
     const [data, setData] = useState([]);
     const [categories, setCategories] = useState([]);
     const [sortedData, setSortedData] = useState([]);
@@ -19,14 +22,17 @@ const Products = () => {
     const [reviews, setReviews] = useState({});
     const [activeProduct, setActiveProduct] = useState(null);
     const [activeReviews, setActiveReviews] = useState([]);
-    const [quantity, setQuantity] = useState(1);
     const { userEmail } = useUser();
+    // for tracking product changes
+    const [productData, setProductData] = useState(null);
 
     // Fetch products only when the component mounts
     useEffect(() => {
         const handleProductFetch = async () => {
             try {
-                const res = await axios.get("http://localhost:8080/active-listings");
+                const res = await axios.get("http://localhost:8080/listings-for-seller", {
+                    params: { userEmail }
+                });
                 setData(res.data.listings);  // Assuming response contains the listings array
             } catch (err) {
                 setMessage(err.response?.data?.message || "Error occurred.");
@@ -117,39 +123,34 @@ const Products = () => {
         }
     };
 
-    // function for calling api to submit an order
-    const submitOrder = async (product) => {
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+    // handle product value edits
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setProductData((prevData) => {
+            const newData = {
+                ...prevData,
+                [name]: value,
+            };
+            console.log("New Product Data:");
+            console.log(newData); // Log the updated data immediately
+            return newData;
+        });
+    };
 
-        const seller_email = product.seller_email;
-        const listing_id = product.listing_id;
-        const buyer_email = userEmail;
-        const date = formattedDate;
-        const new_quantity = quantity;
-        const payment = product.product_price * quantity;
-
-        if (product.quantity < quantity) {
-            setMessage("Cannot Buy That Many");
-        }
-
+    // handle save button click
+    const handleSaveChanges = async () => {
+        const listing_id = activeProduct.listing_id;
         try {
-            const res = await axios.post("http://localhost:8080/submit-order", {
-                params: {
-                    seller_email,
-                    listing_id,
-                    buyer_email,
-                    date,
-                    new_quantity,
-                    payment
-                }
+            await axios.put(`http://localhost:8080/update-product/`, {
+                listing_id: activeProduct.listing_id,
+                ...productData
             });
-            alert("Order Submitted Successfully");
-            
-        } catch (err) {
-            alert(err.response?.data?.message || "Error occurred.");
+            alert("Product updated successfully!");
+        } catch (error) {
+            console.error("Error updating product:", error);
+            alert("Failed to update product.");
         }
-    }
+    };
     
 
     // filter out duplicate categories for display
@@ -202,14 +203,18 @@ const Products = () => {
         }
     }, [displayData]);
 
-    // async function for creating an order for a specific product
-    async function handleBuyClick(product) {
-        await submitOrder(product);
-    }
-
     // card click handler
     async function handleCardClick(product) {
         setActiveProduct(product);
+        setProductData({
+            product_title: product.product_title || "",
+            product_name: product.product_name || "",
+            category: product.category || "",
+            product_description: product.product_description || "",
+            seller_email: product.seller_email || "",
+            product_price: product.product_price || "",
+            status: product.status || "",
+        });
         // fetch reviews for active product
         const reviews = await getReviews(product.listing_id);
         setActiveReviews(reviews);
@@ -221,17 +226,13 @@ const Products = () => {
         setActiveProduct(null);
         setActiveReviews([]);
     }
-
-    const handleQuantityChange = (event) => {
-        setQuantity(Number(event.target.value));
-      };
     
     return (
         <div>
+            <h1 className="manage-products">Manage Your Products</h1>
             { activeProduct === null ? 
             ( 
             <div>
-                <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}/>
                 <div className="products-div">
                     <div className="sorting-div">
                         <h3 className="sort-prompt">Category</h3>
@@ -275,7 +276,6 @@ const Products = () => {
                                     price={product.product_price}
                                     reviewData={reviews[product.listing_id]}
                                     onClick={() => handleCardClick(product)}
-                                    status={0}
                                 />
                             ))
                         ) : (
@@ -293,18 +293,46 @@ const Products = () => {
                         <img className="pimage" src={placeholder}></img>
                     </div>
                     <div className="product-display">
-                        <h1 className="ptitle">
-                            {activeProduct.product_title}
-                        </h1>
-                        <h1 className="name">
-                            {activeProduct.product_name}
-                        </h1>
-                        <h1 className="category">
-                            {activeProduct.category}
-                        </h1>
-                        <h2 className="pdescription">
-                            {activeProduct.product_description}
-                        </h2>
+                        <h3>Title:</h3>
+                        <input
+                            type="text"
+                            name="product_title"
+                            value={productData.product_title}
+                            onChange={handleChange}
+                            placeholder="Product Title"
+                            className="ptitle"
+                        />
+                        <h3>Name:</h3>
+                        <input
+                            type="text"
+                            name="product_name"
+                            value={productData.product_name}
+                            onChange={handleChange}
+                            placeholder="Product Name"
+                            className="name"
+                        />
+                        <h3>Category:</h3>
+                        <select
+                            name="category"
+                            value={productData.category}
+                            onChange={handleChange}
+                            className="category-disp"
+                        >
+                            <option value="">Select a Category</option>
+                            {categories.map((category, index) => (
+                                <option key={index} value={category.parent_category}>
+                                    {category.parent_category}
+                                </option>
+                            ))}
+                        </select>
+                        <h3>Description:</h3>
+                        <textarea
+                            name="product_description"
+                            value={productData.product_description}
+                            onChange={handleChange}
+                            placeholder="Product Description"
+                            className="pdescription"
+                        />
                         <h2 className="pseller">
                             Seller: {activeProduct.seller_email}
                         </h2>
@@ -319,30 +347,37 @@ const Products = () => {
                                 ({reviews[activeProduct.listing_id]?.total_reviews ?? "?"})
                             </h2>
                         </div>
-                        <h2 className="pprice">
-                            ${activeProduct.product_price}
-                        </h2>
-                            {activeProduct.quantity > 0 ?
-                            (
-                            <div className="buy-div">
-                                <label className="quantity-label" htmlFor="quantity">Quantity: </label>
-                                <select className="quantity-select" id="quantity" value={quantity} onChange={handleQuantityChange}>
-                                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                                    <option key={num} value={num}>
-                                        {num}
-                                    </option>
-                                    ))}
-                                </select>
-                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>
-                                <h2 className="in-stock">{activeProduct.quantity} In Stock</h2>
-                            </div>
-                            ) : (
-                                <h2 className="out-of-stock">{activeProduct.quantity} Out Of Stock</h2>
-                            )}
+                        <h3>Price: </h3>
+                        <input
+                            type="number"
+                            name="product_price"
+                            value={productData.product_price}
+                            onChange={handleChange}
+                            placeholder="Price"
+                            className="pprice"
+                            step="1"
+                        />
+                        <h3>Active: </h3>
+                        <select
+                            name="status"
+                            value={productData.status}
+                            onChange={handleChange}
+                            className="active"
+                        >
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
+                        <div className="submit-change-div">
+                            <button className="submit-changes-button" onClick={() => handleSaveChanges()}>
+                                SUBMIT CHANGES
+                            </button>
+                        </div>
+                        
                     </div>
                 </div>
                 <div className="reviews-div">
-                    <h1>Product Reviews:</h1>
+                    <h1>Buyer Feedback:</h1>
                     <hr />
                     {activeReviews && activeReviews.length > 0 ? 
                         (
@@ -362,4 +397,4 @@ const Products = () => {
     );
 };
 
-export default Products;
+export default ProductDisplay;

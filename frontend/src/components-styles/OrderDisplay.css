@@ -1,0 +1,15 @@
+.orders-div {
+    padding: 75px;
+}
+
+.order-card {
+    display: flex;
+    flex-direction: row;
+    padding: 10px;
+    flex-wrap: wrap;
+    padding-bottom: 50px;
+}
+
+.order-card p {
+    padding: 10px;
+}

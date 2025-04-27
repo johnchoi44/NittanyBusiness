@@ -7,23 +7,12 @@
     <list default="true" id="93c02b2f-6a0f-43f2-bc61-d07ac3d594d8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/02a7f0ce-bb09-4380-9f40-c869962a71d3.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/02a7f0ce-bb09-4380-9f40-c869962a71d3/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/21303366-685e-44df-973b-0f10f07f25b8.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/21303366-685e-44df-973b-0f10f07f25b8/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/76da3364-88fa-4607-89d6-02b5fcea1976.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/76da3364-88fa-4607-89d6-02b5fcea1976/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/b0439833-0b2a-44e9-bbee-2cbb639a8ac9.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/b0439833-0b2a-44e9-bbee-2cbb639a8ac9/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/cd727dcd-df98-4444-9d08-e1b2289d23ec.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/cd727dcd-df98-4444-9d08-e1b2289d23ec/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/edb49917-93e6-4b7e-8e97-93335ea90546.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/edb49917-93e6-4b7e-8e97-93335ea90546/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/fd0cb66c-d387-4212-b72d-04fdd365709c.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/fd0cb66c-d387-4212-b72d-04fdd365709c/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/db.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/db.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dev_start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/dev_start.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +85,9 @@
       <workItem from="1742587929619" duration="16038000" />
       <workItem from="1742919299197" duration="1747000" />
       <workItem from="1743282090982" duration="165000" />
-      <workItem from="1743989537665" duration="3572000" />
+      <workItem from="1743989537665" duration="5493000" />
+      <workItem from="1745609807811" duration="4044000" />
+      <workItem from="1745616422503" duration="401000" />
     </task>
     <servers />
   </component>
@@ -104,6 +95,7 @@
     <option name="version" value="3" />
   </component>
   <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.db" />
     <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
   </component>
 </project>

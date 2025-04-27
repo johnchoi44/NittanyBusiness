@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dataSource name="identifier.sqlite">
+<dataSource name="nittanybusiness">
   <database-model serializer="dbm" dbms="SQLITE" family-id="SQLITE" format-version="4.53">
     <root id="1">
       <ServerVersion>3.45.1</ServerVersion>
@@ -499,7 +499,7 @@
     </routine>
     <schema id="191" parent="1" name="main">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2025-04-07.01:47:37</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-04-25.22:35:51</LastIntrospectionLocalTimestamp>
     </schema>
     <argument id="192" parent="16">
       <ArgumentDirection>R</ArgumentDirection>
@@ -1590,28 +1590,452 @@
     <argument id="554" parent="190">
       <Position>1</Position>
     </argument>
-    <table id="555" parent="191" name="sqlite_master">
+    <table id="555" parent="191" name="Address"/>
+    <table id="556" parent="191" name="Buyer"/>
+    <table id="557" parent="191" name="Categories"/>
+    <table id="558" parent="191" name="Credit_Cards"/>
+    <table id="559" parent="191" name="Helpdesk"/>
+    <table id="560" parent="191" name="Orders"/>
+    <table id="561" parent="191" name="Product_Listings"/>
+    <table id="562" parent="191" name="Requests"/>
+    <table id="563" parent="191" name="Reviews"/>
+    <table id="564" parent="191" name="Sellers"/>
+    <table id="565" parent="191" name="Users"/>
+    <table id="566" parent="191" name="Zipcode_Info"/>
+    <table id="567" parent="191" name="sqlite_master">
       <System>1</System>
     </table>
-    <column id="556" parent="555" name="type">
+    <table id="568" parent="191" name="sqlite_sequence">
+      <System>1</System>
+    </table>
+    <column id="569" parent="555" name="address_id">
       <Position>1</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="557" parent="555" name="name">
+    <column id="570" parent="555" name="zipcode">
       <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
+      <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="558" parent="555" name="tbl_name">
+    <column id="571" parent="555" name="street_num">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="559" parent="555" name="rootpage">
+    <column id="572" parent="555" name="street_name">
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <index id="573" parent="555" name="sqlite_autoindex_Address_1">
+      <ColNames>address_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="574" parent="555">
+      <ColNames>address_id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Address_1</UnderlyingIndexName>
+    </key>
+    <column id="575" parent="556" name="email">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="576" parent="556" name="business_name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="577" parent="556" name="buyer_address_id">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <foreign-key id="578" parent="556">
+      <ColNames>email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Users</RefTableName>
+    </foreign-key>
+    <foreign-key id="579" parent="556">
+      <ColNames>buyer_address_id</ColNames>
+      <RefColNames>address_id</RefColNames>
+      <RefTableName>Address</RefTableName>
+    </foreign-key>
+    <index id="580" parent="556" name="sqlite_autoindex_Buyer_1">
+      <ColNames>email</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="581" parent="556">
+      <ColNames>email</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Buyer_1</UnderlyingIndexName>
+    </key>
+    <column id="582" parent="557" name="parent_category">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="583" parent="557" name="category_name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <foreign-key id="584" parent="557">
+      <ColNames>parent_category</ColNames>
+      <RefColNames>category_name</RefColNames>
+      <RefTableName>Categories</RefTableName>
+    </foreign-key>
+    <index id="585" parent="557" name="sqlite_autoindex_Categories_1">
+      <ColNames>category_name</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="586" parent="557">
+      <ColNames>category_name</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Categories_1</UnderlyingIndexName>
+    </key>
+    <column id="587" parent="558" name="credit_card_num">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="588" parent="558" name="card_type">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="589" parent="558" name="expire_month">
+      <Position>3</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="590" parent="558" name="expire_year">
+      <Position>4</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="591" parent="558" name="security_code">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="592" parent="558" name="owner_email">
+      <Position>6</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <foreign-key id="593" parent="558">
+      <ColNames>owner_email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Buyer</RefTableName>
+    </foreign-key>
+    <index id="594" parent="558" name="sqlite_autoindex_Credit_Cards_1">
+      <ColNames>credit_card_num</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="595" parent="558">
+      <ColNames>credit_card_num</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Credit_Cards_1</UnderlyingIndexName>
+    </key>
+    <column id="596" parent="559" name="email">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="597" parent="559" name="position">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <foreign-key id="598" parent="559">
+      <ColNames>email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Users</RefTableName>
+    </foreign-key>
+    <index id="599" parent="559" name="sqlite_autoindex_Helpdesk_1">
+      <ColNames>email</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="600" parent="559">
+      <ColNames>email</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Helpdesk_1</UnderlyingIndexName>
+    </key>
+    <column id="601" parent="560" name="order_id">
+      <AutoIncrement>1</AutoIncrement>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="602" parent="560" name="seller_email">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="603" parent="560" name="listing_id">
+      <Position>3</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="604" parent="560" name="buyer_email">
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="605" parent="560" name="date">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="606" parent="560" name="quantity">
+      <Position>6</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="607" parent="560" name="payment">
+      <Position>7</Position>
+      <StoredType>REAL|0s</StoredType>
+    </column>
+    <foreign-key id="608" parent="560">
+      <ColNames>seller_email
+listing_id</ColNames>
+      <RefColNames>seller_email
+listing_id</RefColNames>
+      <RefTableName>Product_Listings</RefTableName>
+    </foreign-key>
+    <foreign-key id="609" parent="560">
+      <ColNames>buyer_email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Buyer</RefTableName>
+    </foreign-key>
+    <key id="610" parent="560">
+      <ColNames>order_id</ColNames>
+      <Primary>1</Primary>
+    </key>
+    <check id="611" parent="561">
+      <Predicate>status IN (0, 1, 2)</Predicate>
+    </check>
+    <column id="612" parent="561" name="seller_email">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="613" parent="561" name="listing_id">
+      <Position>2</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="614" parent="561" name="category">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="615" parent="561" name="product_title">
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="616" parent="561" name="product_name">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="617" parent="561" name="product_description">
+      <Position>6</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="618" parent="561" name="quantity">
+      <Position>7</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="619" parent="561" name="product_price">
+      <Position>8</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="620" parent="561" name="status">
+      <DefaultExpression>1</DefaultExpression>
+      <Position>9</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <foreign-key id="621" parent="561">
+      <ColNames>seller_email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Sellers</RefTableName>
+    </foreign-key>
+    <foreign-key id="622" parent="561">
+      <ColNames>category</ColNames>
+      <RefColNames>category_name</RefColNames>
+      <RefTableName>Categories</RefTableName>
+    </foreign-key>
+    <index id="623" parent="561" name="sqlite_autoindex_Product_Listings_1">
+      <ColNames>seller_email
+listing_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="624" parent="561">
+      <ColNames>seller_email
+listing_id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Product_Listings_1</UnderlyingIndexName>
+    </key>
+    <check id="625" parent="562">
+      <Predicate>request_status IN (0, 1)</Predicate>
+    </check>
+    <column id="626" parent="562" name="request_id">
+      <AutoIncrement>1</AutoIncrement>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="627" parent="562" name="sender_email">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="628" parent="562" name="helpdesk_staff_email">
+      <DefaultExpression>&apos;helpdeskteam@nittybiz.com&apos;</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="629" parent="562" name="request_type">
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="630" parent="562" name="request_desc">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="631" parent="562" name="request_status">
+      <Position>6</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <foreign-key id="632" parent="562">
+      <ColNames>sender_email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Users</RefTableName>
+    </foreign-key>
+    <foreign-key id="633" parent="562">
+      <ColNames>helpdesk_staff_email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Users</RefTableName>
+    </foreign-key>
+    <key id="634" parent="562">
+      <ColNames>request_id</ColNames>
+      <Primary>1</Primary>
+    </key>
+    <check id="635" parent="563">
+      <Predicate>rate &gt;= 1 AND rate &lt;= 5</Predicate>
+    </check>
+    <column id="636" parent="563" name="order_id">
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="637" parent="563" name="rate">
+      <Position>2</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="638" parent="563" name="review_desc">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <foreign-key id="639" parent="563">
+      <ColNames>order_id</ColNames>
+      <RefColNames>order_id</RefColNames>
+      <RefTableName>Orders</RefTableName>
+    </foreign-key>
+    <key id="640" parent="563">
+      <ColNames>order_id</ColNames>
+      <Primary>1</Primary>
+    </key>
+    <column id="641" parent="564" name="email">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="642" parent="564" name="business_name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="643" parent="564" name="business_address_id">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="644" parent="564" name="bank_routing_number">
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="645" parent="564" name="bank_account_number">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="646" parent="564" name="balance">
+      <DefaultExpression>0.0</DefaultExpression>
+      <Position>6</Position>
+      <StoredType>REAL|0s</StoredType>
+    </column>
+    <foreign-key id="647" parent="564">
+      <ColNames>email</ColNames>
+      <RefColNames>email</RefColNames>
+      <RefTableName>Users</RefTableName>
+    </foreign-key>
+    <foreign-key id="648" parent="564">
+      <ColNames>business_address_id</ColNames>
+      <RefColNames>address_id</RefColNames>
+      <RefTableName>Address</RefTableName>
+    </foreign-key>
+    <index id="649" parent="564" name="sqlite_autoindex_Sellers_1">
+      <ColNames>email</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="650" parent="564">
+      <ColNames>email</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Sellers_1</UnderlyingIndexName>
+    </key>
+    <column id="651" parent="565" name="email">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="652" parent="565" name="password_hash">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="653" parent="565" name="user_type">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <index id="654" parent="565" name="sqlite_autoindex_Users_1">
+      <ColNames>email</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <key id="655" parent="565">
+      <ColNames>email</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>sqlite_autoindex_Users_1</UnderlyingIndexName>
+    </key>
+    <column id="656" parent="566" name="zipcode">
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="657" parent="566" name="city">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="658" parent="566" name="state">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <key id="659" parent="566">
+      <ColNames>zipcode</ColNames>
+      <Primary>1</Primary>
+    </key>
+    <column id="660" parent="567" name="type">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="661" parent="567" name="name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="662" parent="567" name="tbl_name">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="663" parent="567" name="rootpage">
       <Position>4</Position>
       <StoredType>INT|0s</StoredType>
     </column>
-    <column id="560" parent="555" name="sql">
+    <column id="664" parent="567" name="sql">
       <Position>5</Position>
       <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="665" parent="568" name="name">
+      <Position>1</Position>
+    </column>
+    <column id="666" parent="568" name="seq">
+      <Position>2</Position>
     </column>
   </database-model>
 </dataSource>
