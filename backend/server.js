@@ -187,7 +187,99 @@ app.get("/categories", (req, res) => {
         }
 
         res.json({ categories });
-        // console.log("Categories fetched");
+        console.log("Categories fetched");
+    });
+});
+
+// Fetch category hierarchy
+app.get("/category-hierarchy", (req, res) => {
+    const query = 'SELECT * FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching category hierarchy");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        // Transform categories into { parent_category: [category_name, ...] }
+        const groupedCategories = {};
+
+        categories.forEach(({ parent_category, category_name }) => {
+            if (!groupedCategories[parent_category]) {
+                groupedCategories[parent_category] = [];
+            }
+            groupedCategories[parent_category].push(category_name);
+        });
+
+        res.json(groupedCategories);
+        console.log("Categories hierarchy fetched");
+    });
+});
+
+// Fetch Sub Categories for given parent category
+app.get("/get-sub-categories", (req, res) => {
+    const parent_category = req.query.parent_category;
+    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
+    db.all(query, [parent_category], async (err, subCategories) => {
+        if (err) {
+            console.error("Error fetching sub categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!subCategories || subCategories.length === 0) {
+            return res.status(404).json({ message: "No sub categories found" });
+        }
+
+        res.json({ subCategories });
+        console.log("Sub categories fetched");
+        console.log(subCategories);
+    });
+});
+
+// Fetch category hierarchy
+app.get("/category-hierarchy", (req, res) => {
+    const query = 'SELECT * FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching category hierarchy");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        // Transform categories into { parent_category: [category_name, ...] }
+        const groupedCategories = {};
+
+        categories.forEach(({ parent_category, category_name }) => {
+            if (!groupedCategories[parent_category]) {
+                groupedCategories[parent_category] = [];
+            }
+            groupedCategories[parent_category].push(category_name);
+        });
+
+        res.json(groupedCategories);
+        console.log("Categories hierarchy fetched");
+    });
+});
+
+// Fetch Sub Categories for given parent category
+app.get("/get-sub-categories", (req, res) => {
+    const parent_category = req.query.parent_category;
+    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
+    db.all(query, [parent_category], async (err, subCategories) => {
+        if (err) {
+            console.error("Error fetching sub categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!subCategories || subCategories.length === 0) {
+            return res.status(404).json({ message: "No sub categories found" });
+        }
+
+        res.json({ subCategories });
+        console.log("Sub categories fetched");
+        console.log(subCategories);
     });
 });
 
@@ -512,6 +604,83 @@ app.post('/add-product', (req, res) => {
         return res.json({ message: 'Product added successfully', productId: this.lastID });
     });
 });
+
+// User submit their reviews for an order
+app.post("/submit-review", (req, res) => {
+    const { order_id, rate, review_desc } = req.body;
+
+    if (!order_id || !rate || !review_desc) {
+        return res.status(400).json({ message: "Missing review fields" });
+    }
+
+    // First, check if a review already exists for this order
+    const checkQuery = `SELECT * FROM Reviews WHERE order_id = ?`;
+    db.get(checkQuery, [order_id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (row) {
+            // Review already exists
+            return res.status(409).json({ message: "Review already exists for this order." });
+        }
+
+        // If no review, proceed to insert
+        const insertQuery = `INSERT INTO Reviews (order_id, rate, review_desc) VALUES (?, ?, ?)`;
+        db.run(insertQuery, [order_id, rate, review_desc], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.status(201).json({ message: "Review submitted successfully" });
+        });
+    });
+});
+
+app.get("/get-reviewed-orders", (req, res) => {
+    const { userEmail, userType } = req.query;
+
+    let query = "";
+    if (userType === "buyer") {
+        query = `
+            SELECT Orders.order_id
+            FROM Orders
+            INNER JOIN Reviews ON Orders.order_id = Reviews.order_id
+            WHERE Orders.buyer_email = ?
+        `;
+    } else if (userType === "seller") {
+        query = `
+            SELECT Orders.order_id
+            FROM Orders
+            INNER JOIN Reviews ON Orders.order_id = Reviews.order_id
+            WHERE Orders.seller_email = ?
+        `;
+    } else {
+        return res.status(400).json({ message: "Invalid userType" });
+    }
+
+    db.all(query, [userEmail], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const reviewedOrderIds = rows.map(row => row.order_id);
+        res.json({ reviewedOrderIds });
+    });
+});
+
+// User fetches their review for a specific order
+app.get("/get-review-by-order", (req, res) => {
+    const { order_id } = req.query;
+
+    if (!order_id) {
+        return res.status(400).json({ message: "Missing order_id" });
+    }
+
+    const query = `SELECT rate, review_desc FROM Reviews WHERE order_id = ?`;
+    db.get(query, [order_id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (row) {
+            res.json({ review: row });
+        } else {
+            res.json({ review: null }); // No review yet
+        }
+    });
+});
+
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)

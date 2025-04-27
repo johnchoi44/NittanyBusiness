@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 const Products = () => {
     const [data, setData] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [categoryHierarchy, setCategoryHierarchy] = useState([]);
     const [sortedData, setSortedData] = useState([]);
     const [sortOption, setSortOption] = useState("default");
     const [message, setMessage] = useState("");
@@ -46,6 +47,14 @@ const Products = () => {
             try {
                 const res = await axios.get("http://localhost:8080/categories");
                 setCategories(res.data.categories);  // Assuming response contains categories array
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+            }
+
+            try {
+                const res = await axios.get("http://localhost:8080/category-hierarchy");
+                setCategoryHierarchy(res.data);  // Assuming response contains categories array
+                console.log(res.data);
             } catch (err) {
                 setMessage(err.response?.data?.message || "Error occurred.");
             }
@@ -136,7 +145,7 @@ const Products = () => {
         // apply category filter
         if (selectedCategory !== "default") {
           filtered = filtered.filter(
-            (product) => product.category.toLowerCase() === selectedCategory.toLowerCase()
+            (product) => categoryHierarchy[selectedCategory].includes(product.category)
           );
         }
       
@@ -192,6 +201,7 @@ const Products = () => {
     // card click handler
     async function handleCardClick(product) {
         setActiveProduct(product);
+        console.log(categoryHierarchy[product.category]);
         // fetch reviews for active product
         const reviews = await getReviews(product.listing_id);
         setActiveReviews(reviews);
@@ -202,7 +212,7 @@ const Products = () => {
         // clear active product and active reviews
         setActiveProduct(null);
         setActiveReviews([]);
-    }
+    };
 
     const handleQuantityChange = (event) => {
         setQuantity(Number(event.target.value));
@@ -225,7 +235,7 @@ const Products = () => {
                             onChange={(e) => setSelectedCategory(e.target.value)}>
                             {/* Add category options here */}
                             <option value="default">Default</option>
-                            {(uniqueParentCategories || []).map((category, index) => (
+                            {(categories || []).map((category, index) => (
                                 <option value={category.parent_category}>{category.parent_category}</option>
                             ))}
                         </select>
@@ -251,6 +261,7 @@ const Products = () => {
                                 <ProductCard
                                     key={index}
                                     title={product.product_title}
+                                    category={product.category}
                                     description={product.product_description}
                                     seller={product.seller_email}
                                     image={placeholder}

@@ -2,7 +2,7 @@ import React from "react";
 import "../components-styles/ProductCard.css";
 import { useUser } from "./UserContext";
 
-const ProductCard = ({ reviewData, title, description, seller, image, price, onClick, status }) => {
+const ProductCard = ({ reviewData, title, category, description, seller, image, price, onClick, status }) => {
     const { userEmail } = useUser();
     
     return (
@@ -13,6 +13,9 @@ const ProductCard = ({ reviewData, title, description, seller, image, price, onC
                 <h1 className="title">
                     {title}
                 </h1>
+                <h2 className="category">
+                    {category}
+                </h2>
                 <h2 className="description">
                     {description}
                 </h2>
