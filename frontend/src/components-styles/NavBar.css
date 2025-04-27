@@ -49,3 +49,14 @@
     text-decoration: none;
     font-weight: bold;
 }
+
+/* Style for the active tab */
+.links a.active {
+    font-size: 18px;        /* Make it slightly bigger */
+    color: rgb(179, 179, 179);         /* Change the color */
+    font-weight: bold;
+}
+
+.links a:hover {
+    color: rgb(179, 179, 179);         /* Change color on hover */
+}

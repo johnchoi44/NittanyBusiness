@@ -8,7 +8,7 @@ const bcrypt = require("bcrypt"); // Import bcrypt for password hashing
 const db = new sqlite3.Database(path.resolve(__dirname, "nittanybusiness.db"), (err) => {
     if (err) return console.error("DB Error:", err.message);
     console.log("Connected to SQLite database.");
-    // populateTables();
+    //populateTables();
 });
 
 

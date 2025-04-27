@@ -1,9 +1,9 @@
 import { React, useEffect, useState } from "react";
-//import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";  // Import the useLocation hook
 import "../components-styles/NavBar.css";
 
 const NavBar = () => {
-    //const navigate = useNavigate();
+    const location = useLocation();  // Get the current location (URL)
 
     const [show, setShow] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
@@ -25,14 +25,27 @@ const NavBar = () => {
 
         return () => window.removeEventListener("scroll", handleScroll);
     }, [lastScrollY]);
-    
+
+    // Helper function to determine if the current tab is active
+    const isActive = (path) => location.pathname === path;
+
     return (
         <div className={`nav-body ${show ? "visible" : "hidden"}`}>
             <h1 className="nav-title">Nittany Business</h1>
             <div className="nav-content">
                 <div className="links">
-                    <a href="/home">Products</a>
-                    <a href="/profile">Profile</a>
+                    <a
+                        href="/home"
+                        className={isActive("/home") ? "active" : ""}
+                    >
+                        Products
+                    </a>
+                    <a
+                        href="/profile"
+                        className={isActive("/profile") ? "active" : ""}
+                    >
+                        Profile
+                    </a>
                 </div>
             </div>
         </div>

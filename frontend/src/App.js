@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile"
+import Helpdesk from "./components/Helpdesk";
 import { UserProvider } from './components/UserContext';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
                   <Route path="/signup" element={<SignUp />} />
                   <Route path="/home" element={<Home />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/helpdesk" element={<Helpdesk />} />
               </Routes>
       </Router>
     </UserProvider>

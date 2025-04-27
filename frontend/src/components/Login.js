@@ -9,7 +9,7 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
-    const { setUserEmail } = useUser();
+    const { setUserEmail, setUserType } = useUser();
     
     // TODO: add logic that direct user to different pages based on their type
     const handleLogin = async (e) => {
@@ -19,8 +19,14 @@ const Login = () => {
                 email,
                 password,
             });
-            setUserEmail(email); // set username globally
-            navigate("/home");
+            setUserEmail(res.data.email); // set username globally
+            setUserType(res.data.user_type); // set usertype globally
+
+            if (res.data.user_type === "helpdesk") {
+                navigate("/helpdesk");
+            } else {
+                navigate("/home");
+            }
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
         }
