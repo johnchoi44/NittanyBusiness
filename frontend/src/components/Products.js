@@ -172,12 +172,14 @@ const Products = () => {
     // async function for creating an order for a specific product
     async function handleBuyClick(product) {
         const orderDetails = {
+            date: new Date().toISOString().slice(0,10),
             listing_id: product.listing_id,
             seller_email: product.seller_email,
+            buyer_email: userEmail,
             product_title: product.product_title,
             unit_price: parseFloat(product.product_price),
             quantity,
-            total_price: parseFloat(product.product_price) * quantity,
+            total_price: parseFloat(product.product_price) * quantity
         };
 
         if (product.quantity < orderDetails.quantity) {

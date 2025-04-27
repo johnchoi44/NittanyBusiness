@@ -8,7 +8,8 @@ import SignUp from "./components/SignUp";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile"
 import Helpdesk from "./components/Helpdesk";
-import OrderReview from './pages/OrderReview';
+import OrderReview from "./pages/OrderReview";
+import Checkout from "./pages/Checkout";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/helpdesk" element={<Helpdesk />} />
                   <Route path="/order-review" element={<OrderReview />}/>
+                  <Route path="/order-checkout" element={<Checkout />}/>
               </Routes>
       </Router>
     </UserProvider>

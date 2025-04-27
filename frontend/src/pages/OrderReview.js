@@ -8,9 +8,6 @@ import NavBar from "../components/NavBar.js";
 const OrderConfirmation = () => {
     const { state } = useLocation();
     const navigate = useNavigate();
-    const { userEmail } = useUser();
-
-    console.log(state.order);
 
     if (!state?.order) {
         console.log("Error: cannot retrieve order details.");
@@ -20,20 +17,8 @@ const OrderConfirmation = () => {
 
     const { order } = state; // getting order details
 
-    const handleConfirm = async () => {
-        try {
-            await axios.post("http://localhost:8080/submit-order", {
-                seller_email: order.seller_email,
-                listing_id: order.listing_id,
-                buyer_email: userEmail,
-                date: new Date().toISOString().slice(0,10),
-                quantity: order.quantity,
-                payment: order.total_price,
-        });
-            navigate("/order-success");
-        } catch (err) {
-            alert(err.response?.data?.message || "Failed to place order.");
-        }
+    const handleConfirm = () => {
+        navigate("/order-checkout", { state: { order: order } });
     };
 
     return (
