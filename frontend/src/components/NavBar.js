@@ -6,7 +6,7 @@ import { useUser } from "./UserContext";
 const NavBar = () => {
     const location = useLocation();  // Get the current location (URL)
     const navigate = useNavigate();
-    const { userEmail, setUserEmail } = useUser();
+    const { userEmail, setUserEmail, userType, setUserType } = useUser();
 
     const [show, setShow] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
@@ -34,7 +34,9 @@ const NavBar = () => {
 
     const handleLogout = () => {
         setUserEmail(null);
+        setUserType("");
         localStorage.removeItem('userEmail');
+        localStorage.removeItem('userType');
         navigate("/login");
     };
 
@@ -49,6 +51,32 @@ const NavBar = () => {
                     >
                         Products
                     </a>
+
+                    {userType === "seller" && 
+                        <a
+                            href="/product-management"
+                            className={isActive("/product-management") ? "active" : ""}
+                        >
+                            Product Management
+                        </a>
+                    }
+
+                    {userType === "seller" ? (
+                        <a
+                            href="/order-management"
+                            className={isActive("/order-management") ? "active" : ""}
+                        >
+                            Sales Management
+                        </a>
+                    ) : (
+                        <a
+                        href="/order-management"
+                        className={isActive("/order-management") ? "active" : ""}
+                        >
+                            Order Management
+                        </a>    
+                    )}
+
                     <a
                         href="/profile"
                         className={isActive("/profile") ? "active" : ""}

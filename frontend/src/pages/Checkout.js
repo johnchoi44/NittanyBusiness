@@ -90,7 +90,7 @@ const CheckOut = () => {
             payment: total_price,
             credit_card,
             });
-            navigate("/profile");
+            navigate("/order-management");
         } catch (err) {
             setMessage(err.response?.data?.error || "Checkout failed");
         }

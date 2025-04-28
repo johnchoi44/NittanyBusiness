@@ -245,7 +245,7 @@ const ProductDisplay = () => {
     }
     
     return (
-        <div>
+        <div className="product-display-container">
             <div className="title-div">
                 <h1 className="manage-products">Manage Your Products</h1>
                 <button className="product-button" onClick={() => handleNewProductClick()}>Add an item</button>
