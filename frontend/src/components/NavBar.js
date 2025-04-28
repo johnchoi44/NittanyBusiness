@@ -85,21 +85,12 @@ const NavBar = () => {
                     </a>
                     {userEmail ? (
                         <>
-                            <span style={{ paddingLeft: "10px", paddingRight: "10px", color: "white" }}>
+                            {/* <span style={{ paddingLeft: "10px", paddingRight: "10px", color: "white" }}>
                                 Logged in as: <strong>{userEmail}</strong>
-                            </span>
+                            </span> */}
                             <button
+                                id="logout-btn"
                                 onClick={handleLogout}
-                                style={{
-                                    backgroundColor: "transparent",
-                                    color: "white",
-                                    border: "1px solid white",
-                                    borderRadius: "8px",
-                                    padding: "5px 10px",
-                                    fontWeight: "bold",
-                                    cursor: "pointer",
-                                    marginLeft: "10px"
-                                }}
                             >
                                 Logout
                             </button>
@@ -107,16 +98,7 @@ const NavBar = () => {
                     ) : (
                         <button
                             onClick={() => navigate("/login")}
-                            style={{
-                                backgroundColor: "transparent",
-                                color: "white",
-                                border: "1px solid white",
-                                borderRadius: "8px",
-                                padding: "5px 10px",
-                                fontWeight: "bold",
-                                cursor: "pointer",
-                                marginLeft: "10px"
-                            }}
+                            id="logout-btn"
                         >
                             Login
                         </button>
