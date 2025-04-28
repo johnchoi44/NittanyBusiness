@@ -14,6 +14,7 @@ const OrderDisplay = ({ userType }) => {
     const [reviews, setReviews] = useState({});
     const [showModal, setShowModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+
     const handleReviewClick = async (order) => {
         if (order.reviewed) {
             try {
@@ -79,6 +80,9 @@ const OrderDisplay = ({ userType }) => {
     };
 
     useEffect(() => {
+        console.log("Handling Order Fetch");
+        console.log(userType);
+        console.log(userEmail);
         const handleOrderFetch = async () => {
             setLoading(true);
             try {

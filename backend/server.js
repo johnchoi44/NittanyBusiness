@@ -838,6 +838,54 @@ app.get("/get-review-by-order", (req, res) => {
 });
 
 
+// Fetch the UserType of a given user (Needed)
+app.get("/get-user-type", (req, res) => {
+    const user_email = req.query.email;
+    console.log(user_email);
+    let role = "";
+
+    const queryBuyer = 'SELECT 1 FROM Buyer WHERE email = ? LIMIT 1';
+    const querySeller = 'SELECT 1 FROM Sellers WHERE email = ? LIMIT 1';
+    const queryHelpDesk = 'SELECT 1 FROM Helpdesk WHERE email = ? LIMIT 1';
+
+    db.get(queryBuyer, [user_email], (err, rowBuyer) => {
+        if (err) {
+            console.error("Buyer query error:", err);
+            return res.status(500).send("Database error");
+        }
+        if (rowBuyer) {
+            console.log("User in Buyers table");
+            role="buyer";
+        }
+
+        db.get(querySeller, [user_email], (err, rowSeller) => {
+            if (err) {
+                console.error("Seller query error:", err);
+                return res.status(500).send("Database error");
+            }
+            if (rowSeller) {
+                console.log("User in Sellers table");
+                role="seller";
+            }
+
+            db.get(queryHelpDesk, [user_email], (err, rowHelpdesk) => {
+                if (err) {
+                    console.error("Helpdesk query error:", err);
+                    return res.status(500).send("Database error");
+                }
+                if (rowHelpdesk) {
+                    console.log("User in Helpdesk table");
+                    role="helpdesk";
+                }
+    
+                res.json({ user_email, role });
+            });
+        });
+    });
+});
+
+
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`)
 });

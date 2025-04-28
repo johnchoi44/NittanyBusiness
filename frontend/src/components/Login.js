@@ -19,13 +19,23 @@ const Login = () => {
                 password,
             });
             setUserEmail(res.data.email); // set username globally
-            setUserType(res.data.user_type); // set usertype globally
 
             if (res.data.user_type === "helpdesk") {
                 navigate("/helpdesk");
             } else {
                 navigate("/home");
             }
+
+            // added because we need to call a route to fetch type
+            try {
+                const res = await axios.get("http://localhost:8080/get-user-type", {
+                    params: { email }
+                });
+                setUserType(res.data.role); 
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+            }
+
         } catch (err) {
             setMessage(err.response?.data?.message || "Error occurred.");
         }

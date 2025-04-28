@@ -5,6 +5,7 @@ import { useUser } from "../components/UserContext";
 
 const OrderHistory = () => {
     const { userType } = useUser();
+    console.log("Type in Hist: ", userType);
 
     return (
         <div>
