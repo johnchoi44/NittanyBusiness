@@ -6,6 +6,8 @@ import NavBar from "../components/NavBar";
 
 const Profile = () => {
     const { userEmail, userType } = useUser();
+    const [newEmail, setNewEmail] = useState("");
+    const [request, setReqest] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [message, setMessage] = useState("");
     const [password, setPassword] = useState("");
@@ -61,6 +63,10 @@ const Profile = () => {
         setRawStreet(trimmed); // normalize rawStreet
     };
 
+    const handleClick = () => {
+        setReqest(prev => !prev);
+    }
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         let formatted = value;
@@ -86,6 +92,15 @@ const Profile = () => {
         console.log("CHANGE IN PROFILE: ", name, value);
         setUserInfo(prev => ({ ...prev, [name]: formatted }));
         console.log("AFTER CHANGE USER INFO: ", userInfo);
+    };
+
+    // async
+    const handleNewEmail = (e) => {
+        e.preventDefault();
+
+        if (!newEmail) return;
+
+        // Backend endpoint
     };
 
     const handleSubmit = async (e) => {
@@ -291,7 +306,48 @@ const Profile = () => {
                                 </div>
                             </section>
                         )}
+                        
+                        {request ? (
+                            <div className="request-container">
+                                <fieldset>
+                                    <form className="request-form" onSubmit={handleNewEmail}>
+                                        <div style={{display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
+                                            <p className="profile-label">Request change of business email</p>
+                                            <button
+                                                id="close-btn"
+                                                style={{ justifySelf: "flex-end" }}
+                                                onClick={handleClick}>
+                                                &#10005;
+                                            </button>
+                                        </div>
+
+
+                                        <p className="profile-sub-label">New Email</p>
+                                        <input
+                                            className="request-input"
+                                            type="email"
+                                            name="email"
+                                            value={newEmail}
+                                            placeholder="Enter new email"
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                        />
+
+                                        <button
+                                            id="request-btn"
+                                            type="submit"
+                                            required
+                                        >
+                                            Submit Request
+                                        </button>
+                                    </form>
+                                </fieldset>
+                            </div>
+                        ) : (
+                            <button id="email-change-btn" onClick={handleClick}>&#x1F4E7; Need to change your business email? Request here.</button>
+                        )}
+
                         <div className="profile-spacer" />
+
                     </form>
                 </div>
             </div>
