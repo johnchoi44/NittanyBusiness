@@ -28,6 +28,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     padding:0 90px 2px 90px;
+    justify-content: center;
     margin: auto;
 }
 
