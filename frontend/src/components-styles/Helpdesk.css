@@ -102,6 +102,24 @@
   margin-bottom: 20px;
 }
 
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-left: 8px;
+    color: white;
+}
+
+.pending {
+    background-color: #f0ad4e;
+}
+
+.resolved {
+    background-color: #5cb85c;
+}
+
 .toggle-button {
   padding: 8px 16px;
   background-color: rgba(30, 64, 124);

@@ -14,6 +14,7 @@ const Helpdesk = () => {
     const [pendingRequests, setPendingRequests] = useState([]);
     const [filteredRequests, setFilteredRequests] = useState([]);
     const [showOnlyMyRequests, setShowOnlyMyRequests] = useState(false);
+    const [showMyRequests, setShowMyRequests] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
@@ -74,12 +75,27 @@ const Helpdesk = () => {
     const handleShowMyRequests = () => {
         setFilteredRequests(pendingRequests.filter(req => req.helpdesk_staff_email === userEmail));
         setShowOnlyMyRequests(true);
+        setShowMyRequests(false);
     };
 
     const handleShowAllRequests = () => {
         setFilteredRequests(pendingRequests);
         setShowOnlyMyRequests(false);
+        setShowMyRequests(false);
     };
+
+    const handleShowAllRequestsAllStatus = async () => {
+        try {
+            const res = await axios.get("http://localhost:8080/helpdesk/all-requests");
+            setPendingRequests(res.data.requests);
+            setFilteredRequests(res.data.requests);
+            setShowOnlyMyRequests(false);
+            setShowMyRequests(!showMyRequests);
+        } catch (err) {
+            setError("Failed to load all requests");
+        }
+    };
+
 
     const handleLogout = () => {
         setUserEmail(null);
@@ -149,8 +165,14 @@ const Helpdesk = () => {
                     {!showOnlyMyRequests ? (
                         <button className="toggle-button" onClick={handleShowMyRequests}>Show My Requests</button>
                     ) : (
-                        <button className="toggle-button" onClick={handleShowAllRequests}>Show All Requests</button>
+                        <button className="toggle-button" onClick={handleShowAllRequests}>Show All Pending Requests</button>
                     )}
+                    {!showMyRequests && (
+                        <button className="toggle-button" onClick={handleShowAllRequestsAllStatus}>
+                        Show All Requests
+                        </button>
+                    )}
+
                 </div>
 
                 {filteredRequests.length > 0 ? (
@@ -161,11 +183,15 @@ const Helpdesk = () => {
                                 <strong>Email:</strong> {req.sender_email} <br />
                                 <strong>Assigned Staff:</strong> {req.helpdesk_staff_email || "Unassigned"} <br />
                                 <strong>Description:</strong> {req.request_desc} <br />
-                                <strong>Status:</strong> {req.request_status} <br />
+                                <strong>Status:</strong>
+                                <span className={`status-badge ${req.request_status === 1 ? "pending" : "resolved"}`}>
+                                    {req.request_status === 1 ? "Pending" : "Resolved"}
+                                </span>
+                                <br />
                                 <label>Update Status: </label>
                                 <select onChange={(e) => handleRequestStatusChange(req.request_id, e.target.value)} defaultValue={req.request_status}>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Resolved">Resolved</option>
+                                    <option value="1">Pending</option>
+                                    <option value="0">Resolved</option>
                                 </select>
                             </li>
                         ))}

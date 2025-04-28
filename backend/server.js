@@ -653,6 +653,15 @@ app.post("/helpdesk/update-user", (req, res) => {
     });
 });
 
+app.get("/helpdesk/all-requests", (req, res) => {
+    const query = `SELECT * FROM Requests ORDER BY request_id DESC`;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ requests: rows });
+    });
+});
+
+
 // fetch the orders for a user email given userType
 app.get("/get-orders-by-type", (req, res) => {
     const userType = req.query.userType;
