@@ -11,9 +11,29 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+// == Helper functions ==
+function runAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve(this);
+        });
+    });
+}
+
+function allAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+// ======================
+
 // Register
 app.post("/register", async (req, res) => {
-	const {
+    const {
         email,
         password,
         user_type,
@@ -21,85 +41,75 @@ app.post("/register", async (req, res) => {
         address: { street, city, zipcode, state = "" } = {},
         credit_card,
         bank,
-	} = req.body;
+    } = req.body;
 
-	try {
+    try {
         const hashed = await bcrypt.hash(password, 10);
         await runAsync(
             `INSERT INTO users (email, password_hash, user_type)
             VALUES (?, ?, ?)`,
             [email, hashed, user_type]
-	);
+        );
 
-	await runAsync(
-		`INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)
+        await runAsync(
+            `INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)
 		VALUES (?, ?, ?)`,
-		[zipcode, city, state]
-	);
+            [zipcode, city, state]
+        );
 
-	const addressId = randomUUID();
-	await runAsync(
-		`INSERT INTO Address (address_id, zipcode, street_num, street_name)
+        const addressId = randomUUID();
+        await runAsync(
+            `INSERT INTO Address (address_id, zipcode, street_num, street_name)
 		VALUES (?, ?, ?, ?)`,
-		[addressId, zipcode, "", street]
-	);
+            [addressId, zipcode, "", street]
+        );
 
-	if (user_type === "buyer") {
-		// a) Buyer table
-		await runAsync(
-		`INSERT INTO Buyer (email, business_name, buyer_address_id)
+        if (user_type === "buyer") {
+            // a) Buyer table
+            await runAsync(
+                `INSERT INTO Buyer (email, business_name, buyer_address_id)
 		VALUES (?, ?, ?)`,
-		[email, business_name, addressId]
-		);
+                [email, business_name, addressId]
+            );
 
-		await runAsync(
-		`INSERT INTO Credit_Cards 
+            await runAsync(
+                `INSERT INTO Credit_Cards 
             (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		[
-            credit_card.credit_card_num,
-            credit_card.card_type,
-            credit_card.expire_month,
-            credit_card.expire_year,
-            credit_card.security_code,
-            email,
-		]
-		);
-	} else if (user_type === "seller") {
-		await runAsync(
-		`INSERT INTO Sellers
+                [
+                    credit_card.credit_card_num,
+                    credit_card.card_type,
+                    credit_card.expire_month,
+                    credit_card.expire_year,
+                    credit_card.security_code,
+                    email,
+                ]
+            );
+        } else if (user_type === "seller") {
+            await runAsync(
+                `INSERT INTO Sellers
 			(email, business_name, business_address_id, bank_routing_number, bank_account_number, balance)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		[
-			email,
-			business_name,
-			addressId,
-			bank.bank_routing_number,
-			bank.bank_account_number,
-			bank.balance,
-		]
-		);
-	}
+                [
+                    email,
+                    business_name,
+                    addressId,
+                    bank.bank_routing_number,
+                    bank.bank_account_number,
+                    bank.balance,
+                ]
+            );
+        }
 
-	res.status(201).json({ message: "User successfully registered", user_id: email, user_type });
-	} catch (err) {
-	if (err.message.includes("UNIQUE constraint")) {
-		return res.status(409).json({ message: "Email already exists" });
-	}
+        res.status(201).json({ message: "User successfully registered", user_id: email, user_type });
+    } catch (err) {
+        if (err.message.includes("UNIQUE constraint")) {
+            return res.status(409).json({ message: "Email already exists" });
+        }
         console.error(err);
         res.status(500).json({ error: err.message });
-	}
+    }
 });
-
-// Helper function for register
-function runAsync(sql, params = []) {
-	return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            resolve(this);
-        });
-	});
-}
 
 // Login
 app.post("/login", (req, res) => {
@@ -113,7 +123,7 @@ app.post("/login", (req, res) => {
         try {
             const match = await bcrypt.compare(password, user.password_hash);
             console.log("Password match result:", match); // Debug log
-            
+
             if (!match) {
                 return res.status(401).json({ message: "Invalid password" });
             }
@@ -124,6 +134,207 @@ app.post("/login", (req, res) => {
             return res.status(500).json({ error: "Internal server error" });
         }
     });
+});
+
+// Fetch user information
+app.get("/user-info", (req, res) => {
+    const { email, type } = req.query;
+    if (!email || !type) {
+        return res.status(400).json({ error: "Missing `email` or `type`" });
+    }
+
+    let sql;
+    const params = [email];
+
+    if (type === "buyer") {
+        sql = `
+        SELECT
+            u.email,
+            b.business_name   AS name,
+            a.street_num,
+            a.street_name,
+            a.zipcode,
+            z.city,
+            z.state,
+            c.credit_card_num,
+            c.card_type,
+            c.expire_month,
+            c.expire_year,
+            c.security_code
+        FROM Users AS u
+        JOIN Buyer AS b
+            ON b.email = u.email
+        JOIN Address AS a
+            ON a.address_id = b.buyer_address_id
+        JOIN Zipcode_Info AS z
+            ON z.zipcode = a.zipcode
+        LEFT JOIN Credit_Cards AS c
+            ON c.owner_email = u.email
+        WHERE u.email = ?
+        `;
+    } else if (type === "seller") {
+        sql = `
+        SELECT
+            u.email,
+            s.business_name   AS name,
+            a.street_num,
+            a.street_name,
+            a.zipcode,
+            z.city,
+            z.state,
+            s.bank_routing_number,
+            s.bank_account_number,
+            s.balance
+        FROM Users AS u
+        JOIN Sellers AS s
+            ON s.email = u.email
+        JOIN Address AS a
+            ON a.address_id = s.business_address_id
+        JOIN Zipcode_Info AS z
+            ON z.zipcode = a.zipcode
+        WHERE u.email = ?
+        `;
+    } else {
+        return res.status(400).json({ error: "Invalid `type`" });
+    }
+
+    db.get(sql, params, (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: "User not found" });
+        res.json(row);
+    });
+});
+
+// Buyer profile update
+app.put("/update-buyer", async (req, res) => {
+    const {
+        email,
+        password,
+        street_num,
+        street_name,
+        city,
+        zipcode,
+        state,
+        credit_card_num,
+        card_type,
+        expire_month,
+        expire_year,
+        security_code
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        if (password && password.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await runAsync(
+                `UPDATE Users SET password_hash = ? WHERE email = ?`,
+                [hashedPassword, email]
+            );
+        }
+
+        await runAsync(
+            `INSERT OR REPLACE INTO Zipcode_Info (zipcode, city, state)
+             VALUES (?, ?, ?)`,
+            [zipcode, city, state]
+        );
+
+        const addressRows = await allAsync(
+            `SELECT buyer_address_id AS address_id FROM Buyer WHERE email = ?`,
+            [email]
+        );
+        if (!addressRows.length) {
+            throw new Error("Address not found for the buyer");
+        }
+        const addressId = addressRows[0].address_id;
+
+        await runAsync(
+            `UPDATE Address
+             SET street_num = ?, street_name = ?, zipcode = ?
+             WHERE address_id = ?`,
+            [street_num, street_name, zipcode, addressId]
+        );
+
+        await runAsync(
+            `UPDATE Credit_Cards
+             SET credit_card_num = ?, card_type = ?, expire_month = ?, expire_year = ?, security_code = ?
+             WHERE owner_email = ?`,
+            [credit_card_num, card_type, expire_month, expire_year, security_code, email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Buyer information updated successfully" });
+
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error("Error updating buyer:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// Seller profile update
+app.put("/update-seller", async (req, res) => {
+    const {
+        email,
+        password,
+        street_num,
+        street_name,
+        city,
+        zipcode,
+        state,
+        bank_routing_number,
+        bank_account_number
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        if (password && password.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await runAsync(
+                `UPDATE Users SET password_hash = ? WHERE email = ?`,
+                [hashedPassword, email]
+            );
+        }
+
+        await runAsync(
+            `INSERT OR REPLACE INTO Zipcode_Info (zipcode, city, state)
+             VALUES (?, ?, ?)`,
+            [zipcode, city, state]
+        );
+
+        const addressRows = await allAsync(
+            `SELECT business_address_id AS address_id FROM Sellers WHERE email = ?`,
+            [email]
+        );
+        if (!addressRows.length) {
+            throw new Error("Address not found for the seller");
+        }
+        const addressId = addressRows[0].address_id;
+
+        await runAsync(
+            `UPDATE Address
+             SET street_num = ?, street_name = ?, zipcode = ?
+             WHERE address_id = ?`,
+            [street_num, street_name, zipcode, addressId]
+        );
+
+        await runAsync(
+            `UPDATE Sellers
+             SET bank_routing_number = ?, bank_account_number = ?
+             WHERE email = ?`,
+            [bank_routing_number, bank_account_number, email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Seller information updated successfully" });
+
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error("Error updating seller:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Fetch All Active Product Listings
@@ -139,7 +350,7 @@ app.get("/active-listings", (req, res) => {
         }
 
         res.json({ listings });
-        console.log("Listings fetched");
+        // console.log("Listings fetched");
     });
 });
 
@@ -148,7 +359,7 @@ app.get("/listings-for-seller", (req, res) => {
     const seller_email = req.query.userEmail;
     const query = 'SELECT * FROM Product_Listings WHERE seller_email = ?';
     console.log(req.query)
-    console.log("EMAIL: ",seller_email);
+    console.log("EMAIL: ", seller_email);
     db.all(query, [seller_email], async (err, listings) => {
         if (err) {
             console.error("Error fetching listings");
@@ -178,6 +389,52 @@ app.get("/categories", (req, res) => {
 
         res.json({ categories });
         console.log("Categories fetched");
+    });
+});
+
+// Fetch category hierarchy
+app.get("/category-hierarchy", (req, res) => {
+    const query = 'SELECT * FROM Categories';
+    db.all(query, [], async (err, categories) => {
+        if (err) {
+            console.error("Error fetching category hierarchy");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!categories || categories.length === 0) {
+            return res.status(404).json({ message: "No categories found" });
+        }
+
+        // Transform categories into { parent_category: [category_name, ...] }
+        const groupedCategories = {};
+
+        categories.forEach(({ parent_category, category_name }) => {
+            if (!groupedCategories[parent_category]) {
+                groupedCategories[parent_category] = [];
+            }
+            groupedCategories[parent_category].push(category_name);
+        });
+
+        res.json(groupedCategories);
+        console.log("Categories hierarchy fetched");
+    });
+});
+
+// Fetch Sub Categories for given parent category
+app.get("/get-sub-categories", (req, res) => {
+    const parent_category = req.query.parent_category;
+    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
+    db.all(query, [parent_category], async (err, subCategories) => {
+        if (err) {
+            console.error("Error fetching sub categories");
+            return res.status(500).json({ error: err.message });
+        }
+        if (!subCategories || subCategories.length === 0) {
+            return res.status(404).json({ message: "No sub categories found" });
+        }
+
+        res.json({ subCategories });
+        console.log("Sub categories fetched");
+        console.log(subCategories);
     });
 });
 
@@ -263,37 +520,92 @@ app.get("/reviews", (req, res) => {
     });
 });
 
-app.post("/submit-order", (req, res) => {
-    const { seller_email, listing_id, buyer_email, date, quantity, payment } = req.body.params;
-
-    if (!seller_email || !listing_id || !buyer_email || !date || !quantity || !payment) {
-        return res.status(400).json({ message: "Missing required fields" });
+// Fetch credit card info
+app.get("/credit-cards", (req, res) => {
+    const owner = req.query.owner_email;
+    if (!owner) {
+        return res.status(400).json({ error: "owner_email is required" });
     }
 
-    const stmt = `
-        INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment)
-        VALUES (?, ?, ?, ?, ?, ?)
+    const sql = `
+        SELECT credit_card_num, card_type, expire_month, expire_year, security_code
+        FROM Credit_Cards
+        WHERE owner_email = ?
     `;
-
-    db.run(stmt, [seller_email, listing_id, buyer_email, date, quantity, payment], function (err) {
+    db.all(sql, [owner], (err, rows) => {
         if (err) {
+            console.error("Error fetching credit cards:", err);
             return res.status(500).json({ error: err.message });
         }
-
-        // 🛒 After inserting order, subtract quantity from Product_Listings
-        const updateStmt = `
-            UPDATE Product_Listings
-            SET quantity = quantity - ?
-            WHERE listing_id = ?
-        `;
-        db.run(updateStmt, [quantity, listing_id], function (err2) {
-            if (err2) {
-                return res.status(500).json({ error: "Order placed but failed to update product quantity." });
-            }
-
-            res.status(201).json({ message: "Order submitted and product quantity updated." });
-        });
+        return res.json({ cards: rows });
     });
+});
+
+app.post("/checkout", async (req, res) => {
+    const {
+        seller_email,
+        listing_id,
+        buyer_email,
+        date,
+        quantity,
+        payment,
+        credit_card,
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        await runAsync(
+            `INSERT OR IGNORE INTO Credit_Cards
+                (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                credit_card.credit_card_num,
+                credit_card.card_type,
+                credit_card.expire_month,
+                credit_card.expire_year,
+                credit_card.security_code,
+                buyer_email,
+            ]
+        );
+
+        await runAsync(
+            `INSERT INTO Orders
+                (seller_email, listing_id, buyer_email, date, quantity, payment)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [seller_email, listing_id, buyer_email, date, quantity, payment]
+        );
+
+        const rows = await allAsync(
+            `SELECT quantity FROM Product_Listings WHERE listing_id = ?`,
+            [listing_id]
+        );
+        if (!rows.length) throw new Error("Listing not found");
+        const currentQty = rows[0].quantity;
+        const newQty = currentQty - quantity;
+        const newStatus = newQty <= 0 ? 2 : 1;
+
+        await runAsync(
+            `UPDATE Product_Listings
+                SET quantity = ?, status = ?
+                WHERE listing_id = ?`,
+            [newQty, newStatus, listing_id]
+        );
+
+        await runAsync(
+            `UPDATE Sellers
+                SET balance = balance + ?
+                WHERE email = ?`,
+            [payment, seller_email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Checkout successful" });
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Fetch pending requests
@@ -318,10 +630,10 @@ app.post("/helpdesk/update-request-status", (req, res) => {
 
 // Search user by email
 app.get("/helpdesk/user", (req, res) => {
-    const email = req.query.email?.trim();  // Trim spaces
-    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`; // Case insensitive
+    const email = req.query.email?.trim();
+    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`;
 
-    console.log("Searching for email:", email);  // Debugging output
+    console.log("Searching for email:", email);
 
     db.get(query, [email], (err, user) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -338,52 +650,6 @@ app.post("/helpdesk/update-user", (req, res) => {
     db.run(query, [new_user_type, email], function (err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "User updated successfully" });
-    });
-});
-
-// Fetch the UserType of a given user
-app.get("/get-user-type", (req, res) => {
-    const user_email = req.query.userEmail;
-    console.log(user_email);
-    const roles = [];
-
-    const queryBuyer = 'SELECT 1 FROM Buyer WHERE email = ? LIMIT 1';
-    const querySeller = 'SELECT 1 FROM Sellers WHERE email = ? LIMIT 1';
-    const queryHelpDesk = 'SELECT 1 FROM Helpdesk WHERE email = ? LIMIT 1';
-
-    db.get(queryBuyer, [user_email], (err, rowBuyer) => {
-        if (err) {
-            console.error("Buyer query error:", err);
-            return res.status(500).send("Database error");
-        }
-        if (rowBuyer) {
-            console.log("User in Buyers table");
-            roles.push("buyer");
-        }
-
-        db.get(querySeller, [user_email], (err, rowSeller) => {
-            if (err) {
-                console.error("Seller query error:", err);
-                return res.status(500).send("Database error");
-            }
-            if (rowSeller) {
-                console.log("User in Sellers table");
-                roles.push("seller");
-            }
-
-            db.get(queryHelpDesk, [user_email], (err, rowHelpdesk) => {
-                if (err) {
-                    console.error("Helpdesk query error:", err);
-                    return res.status(500).send("Database error");
-                }
-                if (rowHelpdesk) {
-                    console.log("User in Helpdesk table");
-                    roles.push("helpdesk");
-                }
-    
-                res.json({ user_email, roles });
-            });
-        });
     });
 });
 
@@ -425,7 +691,7 @@ app.get("/get-product-name", (req, res) => {
             return res.status(500).send("Database error");
         }
         if (product) {
-            console.log("Product Requested");
+            // console.log("Product Requested");
             res.json({ product });
         }
     });
@@ -453,7 +719,7 @@ app.put('/update-product', (req, res) => {
     `;
 
     // Run the SQL update query
-    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function(err) {
+    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function (err) {
         if (err) {
             return res.status(500).json({ message: 'Error updating product', error: err.message });
         }
@@ -469,24 +735,25 @@ app.put('/update-product', (req, res) => {
 
 // Define the endpoint to add a product :: TODO: add product id
 app.post('/add-product', (req, res) => {
-    const { userEmail, product_title, product_name, category, product_description, product_price, quantity, status, listing_id } = req.body;
+    const { 
+        userEmail, 
+        product_title, 
+        product_name, 
+        category, 
+        product_description, 
+        product_price, 
+        quantity, status, 
+        listing_id 
+    } = req.body;
+    
     console.log(req.body);
-    console.log(userEmail);
-    console.log(product_title);
-    console.log(product_name);
-    console.log(category);
-    console.log(product_description);
-    console.log(product_price);
-    console.log(quantity);
-    console.log(status);
-    console.log(listing_id);
 
     const sql = `
         INSERT INTO product_listings (product_title, product_name, category, product_description, seller_email, product_price, quantity, status, listing_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    db.run(sql, [product_title, product_name, category, product_description, userEmail, product_price, quantity, status, listing_id], function(err) {
+    db.run(sql, [product_title, product_name, category, product_description, userEmail, product_price, quantity, status, listing_id], function (err) {
         if (err) {
             return res.status(500).json({ message: 'Error adding product', error: err.message });
         }

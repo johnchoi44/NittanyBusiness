@@ -1,0 +1,959 @@
+Index: backend/server.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>const express = require(\"express\");\nconst cors = require(\"cors\");\nconst bcrypt = require(\"bcrypt\");\nconst { randomUUID } = require(\"crypto\");\nconst db = require(\"./db\");\nrequire(\"dotenv\").config();\n\nconst app = express();\napp.use(cors());\napp.use(express.json());\n\nconst PORT = process.env.PORT || 8080;\n\n// Register\napp.post(\"/register\", async (req, res) => {\n\tconst {\n        email,\n        password,\n        user_type,\n        business_name,\n        address: { street, city, zipcode, state = \"\" } = {},\n        credit_card,\n        bank,\n\t} = req.body;\n\n\ttry {\n        const hashed = await bcrypt.hash(password, 10);\n        await runAsync(\n            `INSERT INTO users (email, password_hash, user_type)\n            VALUES (?, ?, ?)`,\n            [email, hashed, user_type]\n\t);\n\n\tawait runAsync(\n\t\t`INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)\n\t\tVALUES (?, ?, ?)`,\n\t\t[zipcode, city, state]\n\t);\n\n\tconst addressId = randomUUID();\n\tawait runAsync(\n\t\t`INSERT INTO Address (address_id, zipcode, street_num, street_name)\n\t\tVALUES (?, ?, ?, ?)`,\n\t\t[addressId, zipcode, \"\", street]\n\t);\n\n\tif (user_type === \"buyer\") {\n\t\t// a) Buyer table\n\t\tawait runAsync(\n\t\t`INSERT INTO Buyer (email, business_name, buyer_address_id)\n\t\tVALUES (?, ?, ?)`,\n\t\t[email, business_name, addressId]\n\t\t);\n\n\t\tawait runAsync(\n\t\t`INSERT INTO Credit_Cards \n            (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)\n\t\tVALUES (?, ?, ?, ?, ?, ?)`,\n\t\t[\n            credit_card.credit_card_num,\n            credit_card.card_type,\n            credit_card.expire_month,\n            credit_card.expire_year,\n            credit_card.security_code,\n            email,\n\t\t]\n\t\t);\n\t} else if (user_type === \"seller\") {\n\t\tawait runAsync(\n\t\t`INSERT INTO Sellers\n\t\t\t(email, business_name, business_address_id, bank_routing_number, bank_account_number, balance)\n\t\tVALUES (?, ?, ?, ?, ?, ?)`,\n\t\t[\n\t\t\temail,\n\t\t\tbusiness_name,\n\t\t\taddressId,\n\t\t\tbank.bank_routing_number,\n\t\t\tbank.bank_account_number,\n\t\t\tbank.balance,\n\t\t]\n\t\t);\n\t}\n\n\tres.status(201).json({ message: \"User successfully registered\", user_id: email, user_type });\n\t} catch (err) {\n\tif (err.message.includes(\"UNIQUE constraint\")) {\n\t\treturn res.status(409).json({ message: \"Email already exists\" });\n\t}\n        console.error(err);\n        res.status(500).json({ error: err.message });\n\t}\n});\n\n// Helper function for register\nfunction runAsync(sql, params = []) {\n\treturn new Promise((resolve, reject) => {\n        db.run(sql, params, function (err) {\n            if (err) return reject(err);\n            resolve(this);\n        });\n\t});\n}\n\n// Login\napp.post(\"/login\", (req, res) => {\n    const { email, password } = req.body;\n\n    const query = `SELECT * FROM Users WHERE email = ?`;\n    db.get(query, [email], async (err, user) => {\n        if (err) return res.status(500).json({ error: err.message });\n        if (!user) return res.status(401).json({ message: \"Invalid username\" });\n\n        try {\n            const match = await bcrypt.compare(password, user.password_hash);\n            console.log(\"Password match result:\", match); // Debug log\n            \n            if (!match) {\n                return res.status(401).json({ message: \"Invalid password\" });\n            }\n            res.json({ message: \"Login successful\", email: user.email, user_type: user.user_type });\n\n        } catch (error) {\n            console.error(\"Error comparing passwords:\", error);  // Catch bcrypt errors\n            return res.status(500).json({ error: \"Internal server error\" });\n        }\n    });\n});\n\n// Fetch All Active Product Listings\napp.get(\"/active-listings\", (req, res) => {\n    const query = 'SELECT * FROM Product_Listings WHERE status != 0';\n    db.all(query, [], async (err, listings) => {\n        if (err) {\n            console.error(\"Error fetching listings\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!listings || listings.length === 0) {\n            return res.status(404).json({ message: \"No Available Listings\" });\n        }\n\n        res.json({ listings });\n        console.log(\"Listings fetched\");\n    });\n});\n\n// Fetch Product Listings for Seller\napp.get(\"/listings-for-seller\", (req, res) => {\n    const seller_email = req.query.userEmail;\n    const query = 'SELECT * FROM Product_Listings WHERE seller_email = ?';\n    console.log(req.query)\n    console.log(\"EMAIL: \",seller_email);\n    db.all(query, [seller_email], async (err, listings) => {\n        if (err) {\n            console.error(\"Error fetching listings\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!listings || listings.length === 0) {\n            return res.status(404).json({ message: \"No Available Listings\" });\n        }\n\n        res.json({ listings });\n        console.log(\"Listings fetched\");\n    });\n});\n\n\n// Fetch All Parent Categories\napp.get(\"/categories\", (req, res) => {\n    const query = 'SELECT parent_category FROM Categories';\n    db.all(query, [], async (err, categories) => {\n        if (err) {\n            console.error(\"Error fetching parent categories\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!categories || categories.length === 0) {\n            return res.status(404).json({ message: \"No categories found\" });\n        }\n\n        res.json({ categories });\n        console.log(\"Categories fetched\");\n    });\n});\n\n// Fetch category hierarchy\napp.get(\"/category-hierarchy\", (req, res) => {\n    const query = 'SELECT * FROM Categories';\n    db.all(query, [], async (err, categories) => {\n        if (err) {\n            console.error(\"Error fetching category hierarchy\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!categories || categories.length === 0) {\n            return res.status(404).json({ message: \"No categories found\" });\n        }\n\n        // Transform categories into { parent_category: [category_name, ...] }\n        const groupedCategories = {};\n\n        categories.forEach(({ parent_category, category_name }) => {\n            if (!groupedCategories[parent_category]) {\n                groupedCategories[parent_category] = [];\n            }\n            groupedCategories[parent_category].push(category_name);\n        });\n\n        res.json(groupedCategories);\n        console.log(\"Categories hierarchy fetched\");\n    });\n});\n\n// Fetch Sub Categories for given parent category\napp.get(\"/get-sub-categories\", (req, res) => {\n    const parent_category = req.query.parent_category;\n    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';\n    db.all(query, [parent_category], async (err, subCategories) => {\n        if (err) {\n            console.error(\"Error fetching sub categories\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!subCategories || subCategories.length === 0) {\n            return res.status(404).json({ message: \"No sub categories found\" });\n        }\n\n        res.json({ subCategories });\n        console.log(\"Sub categories fetched\");\n        console.log(subCategories);\n    });\n});\n\n// Fetch review data (count and avg. rate) for listings\napp.get(\"/review-data\", (req, res) => {\n    const listing_id = req.query.listing_id\n    const query = 'SELECT AVG(r.rate) AS average_rating, COUNT(r.order_id) AS total_reviews FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';\n    db.all(query, [listing_id], async (err, reviews) => {\n        if (err) {\n            console.error(\"Error fetching review data\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!reviews || reviews.length === 0) {\n            return res.status(404).json({ message: \"No review data found\" });\n        }\n\n        res.json({ reviews });\n        // console.log(\"review data fetched\");\n    });\n});\n\n// Fetch reviews for listing\napp.get(\"/reviews\", (req, res) => {\n    const listing_id = req.query.listing_id\n    const query = 'SELECT r.rate, r.review_desc FROM Reviews r JOIN Orders o ON r.order_id = o.order_id WHERE o.listing_id = ?';\n    db.all(query, [listing_id], async (err, reviews) => {\n        if (err) {\n            console.error(\"Error fetching reviews\");\n            return res.status(500).json({ error: err.message });\n        }\n        if (!reviews || reviews.length === 0) {\n            return res.status(404).json({ message: \"No reviews found\" });\n        }\n\n        res.json({ reviews });\n        console.log(\"reviews fetched\");\n    });\n});\n\napp.post(\"/submit-order\", (req, res) => {\n    const { seller_email, listing_id, buyer_email, date, quantity, payment } = req.body.params;\n\n    if (!seller_email || !listing_id || !buyer_email || !date || !quantity || !payment) {\n        return res.status(400).json({ message: \"Missing required fields\" });\n    }\n\n    const stmt = `\n        INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment)\n        VALUES (?, ?, ?, ?, ?, ?)\n    `;\n\n    db.run(stmt, [seller_email, listing_id, buyer_email, date, quantity, payment], function (err) {\n        if (err) {\n            return res.status(500).json({ error: err.message });\n        }\n\n        // \uD83D\uDED2 After inserting order, subtract quantity from Product_Listings\n        const updateStmt = `\n            UPDATE Product_Listings\n            SET quantity = quantity - ?\n            WHERE listing_id = ?\n        `;\n        db.run(updateStmt, [quantity, listing_id], function (err2) {\n            if (err2) {\n                return res.status(500).json({ error: \"Order placed but failed to update product quantity.\" });\n            }\n\n            res.status(201).json({ message: \"Order submitted and product quantity updated.\" });\n        });\n    });\n});\n\n// Fetch pending requests\napp.get(\"/helpdesk/pending-requests\", (req, res) => {\n    const query = `SELECT * FROM Requests WHERE request_status = 1`;\n    db.all(query, [], (err, requests) => {\n        if (err) return res.status(500).json({ error: err.message });\n        res.json({ requests });\n    });\n});\n\n// Update request status\napp.post(\"/helpdesk/update-request-status\", (req, res) => {\n    const { request_id, new_status } = req.body;\n    const query = `UPDATE Requests SET request_status = ? WHERE request_id = ?`;\n    db.run(query, [new_status, request_id], function (err) {\n        if (err) return res.status(500).json({ error: err.message });\n        res.json({ message: \"Request status updated successfully\" });\n    });\n});\n\n\n// Search user by email\napp.get(\"/helpdesk/user\", (req, res) => {\n    const email = req.query.email?.trim();\n    const query = `SELECT email, user_type FROM Users WHERE LOWER(email) = LOWER(?)`;\n\n    console.log(\"Searching for email:\", email);\n\n    db.get(query, [email], (err, user) => {\n        if (err) return res.status(500).json({ error: err.message });\n        if (!user) return res.status(404).json({ message: \"User not found\" });\n        res.json({ user });\n    });\n});\n\n\n// Update user type (e.g., promote/demote users)\napp.post(\"/helpdesk/update-user\", (req, res) => {\n    const { email, new_user_type } = req.body;\n    const query = `UPDATE Users SET user_type = ? WHERE email = ?`;\n    db.run(query, [new_user_type, email], function (err) {\n        if (err) return res.status(500).json({ error: err.message });\n        res.json({ message: \"User updated successfully\" });\n    });\n});\n\n// Fetch the UserType of a given user\napp.get(\"/get-user-type\", (req, res) => {\n    const user_email = req.query.userEmail;\n    console.log(user_email);\n    const roles = [];\n\n    const queryBuyer = 'SELECT 1 FROM Buyer WHERE email = ? LIMIT 1';\n    const querySeller = 'SELECT 1 FROM Sellers WHERE email = ? LIMIT 1';\n    const queryHelpDesk = 'SELECT 1 FROM Helpdesk WHERE email = ? LIMIT 1';\n\n    db.get(queryBuyer, [user_email], (err, rowBuyer) => {\n        if (err) {\n            console.error(\"Buyer query error:\", err);\n            return res.status(500).send(\"Database error\");\n        }\n        if (rowBuyer) {\n            console.log(\"User in Buyers table\");\n            roles.push(\"buyer\");\n        }\n\n        db.get(querySeller, [user_email], (err, rowSeller) => {\n            if (err) {\n                console.error(\"Seller query error:\", err);\n                return res.status(500).send(\"Database error\");\n            }\n            if (rowSeller) {\n                console.log(\"User in Sellers table\");\n                roles.push(\"seller\");\n            }\n\n            db.get(queryHelpDesk, [user_email], (err, rowHelpdesk) => {\n                if (err) {\n                    console.error(\"Helpdesk query error:\", err);\n                    return res.status(500).send(\"Database error\");\n                }\n                if (rowHelpdesk) {\n                    console.log(\"User in Helpdesk table\");\n                    roles.push(\"helpdesk\");\n                }\n    \n                res.json({ user_email, roles });\n            });\n        });\n    });\n});\n\n// fetch the orders for a user email given userType\napp.get(\"/get-orders-by-type\", (req, res) => {\n    const userType = req.query.userType;\n    const userEmail = req.query.userEmail;\n    let query = \"\";\n\n    if (userType === 'buyer') {\n        // requestor is buyer, so search for orders they placed\n        query = 'SELECT * FROM Orders WHERE buyer_email = ?'\n    }\n    else {\n        // requestor is seller, so search for orders placed to them\n        query = 'SELECT * FROM Orders WHERE seller_email = ?'\n    }\n\n    db.all(query, [userEmail], (err, orders) => {\n        if (err) {\n            console.error(\"Order query error:\", err);\n            return res.status(500).send(\"Database error\");\n        }\n        if (orders) {\n            console.log(\"Orders requested\");\n            res.json({ orders });\n        }\n    });\n});\n\n// get product name given listing_id\napp.get(\"/get-product-name\", (req, res) => {\n    const listing_id = req.query.listing_id;\n\n    const query = 'SELECT * FROM product_listings WHERE listing_id = ?'\n    db.get(query, [listing_id], (err, product) => {\n        if (err) {\n            console.error(\"Error Fetching Product:\", err);\n            return res.status(500).send(\"Database error\");\n        }\n        if (product) {\n            console.log(\"Product Requested\");\n            res.json({ product });\n        }\n    });\n});\n\n\n// Define the endpoint to update a product\napp.put('/update-product', (req, res) => {\n    const { listing_id, product_title, product_name, category, product_description, seller_email, product_price, status } = req.body;  // Get updated data from request body\n    console.log(req.body);\n    console.log(listing_id);\n    console.log(product_title);\n    console.log(product_name);\n    console.log(category);\n    console.log(product_description);\n    console.log(seller_email);\n    console.log(product_price);\n    console.log(status);\n\n    // Prepare the SQL statement to update the product by ID\n    const sql = `\n        UPDATE product_listings\n        SET product_title = ?, product_name = ?, category = ?, product_description = ?, product_price = ?, status = ?\n        WHERE listing_id = ?\n    `;\n\n    // Run the SQL update query\n    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function(err) {\n        if (err) {\n            return res.status(500).json({ message: 'Error updating product', error: err.message });\n        }\n\n        // Check if any rows were affected (this ensures the product exists)\n        if (this.changes === 0) {\n            return res.status(404).json({ message: 'Product not found' });\n        }\n\n        return res.json({ message: 'Product updated successfully', productId: listing_id });\n    });\n});\n\n// Define the endpoint to add a product :: TODO: add product id\napp.post('/add-product', (req, res) => {\n    const { userEmail, product_title, product_name, category, product_description, product_price, quantity, status, listing_id } = req.body;\n    console.log(req.body);\n    console.log(userEmail);\n    console.log(product_title);\n    console.log(product_name);\n    console.log(category);\n    console.log(product_description);\n    console.log(product_price);\n    console.log(quantity);\n    console.log(status);\n    console.log(listing_id);\n\n    const sql = `\n        INSERT INTO product_listings (product_title, product_name, category, product_description, seller_email, product_price, quantity, status, listing_id)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\n    `;\n\n    db.run(sql, [product_title, product_name, category, product_description, userEmail, product_price, quantity, status, listing_id], function(err) {\n        if (err) {\n            return res.status(500).json({ message: 'Error adding product', error: err.message });\n        }\n        return res.json({ message: 'Product added successfully', productId: this.lastID });\n    });\n});\n\n// User submit their reviews for an order\napp.post(\"/submit-review\", (req, res) => {\n    const { order_id, rate, review_desc } = req.body;\n\n    if (!order_id || !rate || !review_desc) {\n        return res.status(400).json({ message: \"Missing review fields\" });\n    }\n\n    // First, check if a review already exists for this order\n    const checkQuery = `SELECT * FROM Reviews WHERE order_id = ?`;\n    db.get(checkQuery, [order_id], (err, row) => {\n        if (err) return res.status(500).json({ error: err.message });\n\n        if (row) {\n            // Review already exists\n            return res.status(409).json({ message: \"Review already exists for this order.\" });\n        }\n\n        // If no review, proceed to insert\n        const insertQuery = `INSERT INTO Reviews (order_id, rate, review_desc) VALUES (?, ?, ?)`;\n        db.run(insertQuery, [order_id, rate, review_desc], function (err) {\n            if (err) return res.status(500).json({ error: err.message });\n            res.status(201).json({ message: \"Review submitted successfully\" });\n        });\n    });\n});\n\napp.get(\"/get-reviewed-orders\", (req, res) => {\n    const { userEmail, userType } = req.query;\n\n    let query = \"\";\n    if (userType === \"buyer\") {\n        query = `\n            SELECT Orders.order_id\n            FROM Orders\n            INNER JOIN Reviews ON Orders.order_id = Reviews.order_id\n            WHERE Orders.buyer_email = ?\n        `;\n    } else if (userType === \"seller\") {\n        query = `\n            SELECT Orders.order_id\n            FROM Orders\n            INNER JOIN Reviews ON Orders.order_id = Reviews.order_id\n            WHERE Orders.seller_email = ?\n        `;\n    } else {\n        return res.status(400).json({ message: \"Invalid userType\" });\n    }\n\n    db.all(query, [userEmail], (err, rows) => {\n        if (err) return res.status(500).json({ error: err.message });\n        const reviewedOrderIds = rows.map(row => row.order_id);\n        res.json({ reviewedOrderIds });\n    });\n});\n\n// User fetches their review for a specific order\napp.get(\"/get-review-by-order\", (req, res) => {\n    const { order_id } = req.query;\n\n    if (!order_id) {\n        return res.status(400).json({ message: \"Missing order_id\" });\n    }\n\n    const query = `SELECT rate, review_desc FROM Reviews WHERE order_id = ?`;\n    db.get(query, [order_id], (err, row) => {\n        if (err) return res.status(500).json({ error: err.message });\n\n        if (row) {\n            res.json({ review: row });\n        } else {\n            res.json({ review: null }); // No review yet\n        }\n    });\n});\n\n\napp.listen(PORT, () => {\n    console.log(`Server running at http://localhost:${PORT}`)\n});
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/backend/server.js b/backend/server.js
+--- a/backend/server.js	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/backend/server.js	(date 1745795044431)
+@@ -11,6 +11,26 @@
+ 
+ const PORT = process.env.PORT || 8080;
+ 
++// == Helper functions ==
++function runAsync(sql, params = []) {
++	return new Promise((resolve, reject) => {
++        db.run(sql, params, function (err) {
++            if (err) return reject(err);
++            resolve(this);
++        });
++	});
++}
++
++function allAsync(sql, params = []) {
++    return new Promise((resolve, reject) => {
++        db.all(sql, params, (err, rows) => {
++            if (err) reject(err);
++            else resolve(rows);
++        });
++    });
++}
++// ======================
++
+ // Register
+ app.post("/register", async (req, res) => {
+ 	const {
+@@ -91,16 +111,6 @@
+ 	}
+ });
+ 
+-// Helper function for register
+-function runAsync(sql, params = []) {
+-	return new Promise((resolve, reject) => {
+-        db.run(sql, params, function (err) {
+-            if (err) return reject(err);
+-            resolve(this);
+-        });
+-	});
+-}
+-
+ // Login
+ app.post("/login", (req, res) => {
+     const { email, password } = req.body;
+@@ -139,7 +149,7 @@
+         }
+ 
+         res.json({ listings });
+-        console.log("Listings fetched");
++        // console.log("Listings fetched");
+     });
+ });
+ 
+@@ -227,6 +237,52 @@
+     });
+ });
+ 
++// Fetch category hierarchy
++app.get("/category-hierarchy", (req, res) => {
++    const query = 'SELECT * FROM Categories';
++    db.all(query, [], async (err, categories) => {
++        if (err) {
++            console.error("Error fetching category hierarchy");
++            return res.status(500).json({ error: err.message });
++        }
++        if (!categories || categories.length === 0) {
++            return res.status(404).json({ message: "No categories found" });
++        }
++
++        // Transform categories into { parent_category: [category_name, ...] }
++        const groupedCategories = {};
++
++        categories.forEach(({ parent_category, category_name }) => {
++            if (!groupedCategories[parent_category]) {
++                groupedCategories[parent_category] = [];
++            }
++            groupedCategories[parent_category].push(category_name);
++        });
++
++        res.json(groupedCategories);
++        console.log("Categories hierarchy fetched");
++    });
++});
++
++// Fetch Sub Categories for given parent category
++app.get("/get-sub-categories", (req, res) => {
++    const parent_category = req.query.parent_category;
++    const query = 'SELECT category_name FROM Categories WHERE parent_category = ?';
++    db.all(query, [parent_category], async (err, subCategories) => {
++        if (err) {
++            console.error("Error fetching sub categories");
++            return res.status(500).json({ error: err.message });
++        }
++        if (!subCategories || subCategories.length === 0) {
++            return res.status(404).json({ message: "No sub categories found" });
++        }
++
++        res.json({ subCategories });
++        console.log("Sub categories fetched");
++        console.log(subCategories);
++    });
++});
++
+ // Fetch review data (count and avg. rate) for listings
+ app.get("/review-data", (req, res) => {
+     const listing_id = req.query.listing_id
+@@ -263,37 +319,92 @@
+     });
+ });
+ 
+-app.post("/submit-order", (req, res) => {
+-    const { seller_email, listing_id, buyer_email, date, quantity, payment } = req.body.params;
+-
+-    if (!seller_email || !listing_id || !buyer_email || !date || !quantity || !payment) {
+-        return res.status(400).json({ message: "Missing required fields" });
++// Fetch credit card info
++app.get("/credit-cards", (req, res) => {
++    const owner = req.query.owner_email;
++    if (!owner) {
++        return res.status(400).json({ error: "owner_email is required" });
+     }
+ 
+-    const stmt = `
+-        INSERT INTO Orders (seller_email, listing_id, buyer_email, date, quantity, payment)
+-        VALUES (?, ?, ?, ?, ?, ?)
++    const sql = `
++        SELECT credit_card_num, card_type, expire_month, expire_year, security_code
++        FROM Credit_Cards
++        WHERE owner_email = ?
+     `;
+-
+-    db.run(stmt, [seller_email, listing_id, buyer_email, date, quantity, payment], function (err) {
++    db.all(sql, [owner], (err, rows) => {
+         if (err) {
+-            return res.status(500).json({ error: err.message });
++        console.error("Error fetching credit cards:", err);
++        return res.status(500).json({ error: err.message });
+         }
+-
+-        // 🛒 After inserting order, subtract quantity from Product_Listings
+-        const updateStmt = `
+-            UPDATE Product_Listings
+-            SET quantity = quantity - ?
+-            WHERE listing_id = ?
+-        `;
+-        db.run(updateStmt, [quantity, listing_id], function (err2) {
+-            if (err2) {
+-                return res.status(500).json({ error: "Order placed but failed to update product quantity." });
+-            }
+-
+-            res.status(201).json({ message: "Order submitted and product quantity updated." });
+-        });
+-    });
++        return res.json({ cards: rows });
++    });
++});
++
++app.post("/checkout", async (req, res) => {
++    const {
++        seller_email,
++        listing_id,
++        buyer_email,
++        date,
++        quantity,
++        payment,
++        credit_card,
++    } = req.body;
++
++    try {
++        await runAsync("BEGIN TRANSACTION");
++
++        await runAsync(
++            `INSERT OR IGNORE INTO Credit_Cards
++                (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
++                VALUES (?, ?, ?, ?, ?, ?)`,
++            [
++                credit_card.credit_card_num,
++                credit_card.card_type,
++                credit_card.expire_month,
++                credit_card.expire_year,
++                credit_card.security_code,
++                buyer_email,
++            ]
++        );
++
++        await runAsync(
++            `INSERT INTO Orders
++                (seller_email, listing_id, buyer_email, date, quantity, payment)
++                VALUES (?, ?, ?, ?, ?, ?)`,
++            [seller_email, listing_id, buyer_email, date, quantity, payment]
++        );
++
++        const rows = await allAsync(
++            `SELECT quantity FROM Product_Listings WHERE listing_id = ?`,
++            [listing_id]
++        );
++        if (!rows.length) throw new Error("Listing not found");
++        const currentQty = rows[0].quantity;
++        const newQty = currentQty - quantity;
++        const newStatus = newQty <= 0 ? 2 : 1;
++
++        await runAsync(
++            `UPDATE Product_Listings
++                SET quantity = ?, status = ?
++                WHERE listing_id = ?`,
++            [newQty, newStatus, listing_id]
++        );
++
++        await runAsync(
++            `UPDATE Sellers
++                SET balance = balance + ?
++                WHERE email = ?`,
++            [payment, seller_email]
++        );
++
++        await runAsync("COMMIT");
++        res.json({ message: "Checkout successful" });
++    } catch (err) {
++        await runAsync("ROLLBACK");
++        console.error(err);
++        res.status(500).json({ error: err.message });
++    }
+ });
+ 
+ // Fetch pending requests
+@@ -425,7 +536,7 @@
+             return res.status(500).send("Database error");
+         }
+         if (product) {
+-            console.log("Product Requested");
++            // console.log("Product Requested");
+             res.json({ product });
+         }
+     });
+Index: frontend/src/components/Products.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useEffect } from \"react\";\nimport axios from \"axios\";\nimport \"../components-styles/Products.css\";\nimport ProductCard from \"./ProductCard\";\nimport placeholder from \"../components-styles/images/nittanyicon.png\";\nimport back_img from \"../components-styles/images/left-arrow.png\";\nimport Search from \"./Search\";\nimport { useMemo } from \"react\";\nimport { useUser } from './UserContext';\n\nconst Products = () => {\n    const [data, setData] = useState([]);\n    const [categories, setCategories] = useState([]);\n    const [categoryHierarchy, setCategoryHierarchy] = useState([]);\n    const [sortedData, setSortedData] = useState([]);\n    const [sortOption, setSortOption] = useState(\"default\");\n    const [message, setMessage] = useState(\"\");\n    const [searchTerm, setSearchTerm] = useState(\"\");\n    const [selectedCategory, setSelectedCategory] = useState(\"default\");\n    const [reviews, setReviews] = useState({});\n    const [activeProduct, setActiveProduct] = useState(null);\n    const [activeReviews, setActiveReviews] = useState([]);\n    const [quantity, setQuantity] = useState(1);\n    const { userEmail } = useUser();\n\n    // Fetch products only when the component mounts\n    useEffect(() => {\n        const handleProductFetch = async () => {\n            try {\n                const res = await axios.get(\"http://localhost:8080/active-listings\");\n                setData(res.data.listings);  // Assuming response contains the listings array\n            } catch (err) {\n                setMessage(err.response?.data?.message || \"Error occurred.\");\n            }\n        };\n\n        // perform fetch\n        handleProductFetch();\n    }, []);  // Empty dependency array means this will run once when the component mounts\n\n\n    // Fetch categories only when the component mounts\n    useEffect(() => {\n        const handleCategoryFetch = async () => {\n            try {\n                const res = await axios.get(\"http://localhost:8080/categories\");\n                setCategories(res.data.categories);  // Assuming response contains categories array\n            } catch (err) {\n                setMessage(err.response?.data?.message || \"Error occurred.\");\n            }\n\n            try {\n                const res = await axios.get(\"http://localhost:8080/category-hierarchy\");\n                setCategoryHierarchy(res.data);  // Assuming response contains categories array\n                console.log(res.data);\n            } catch (err) {\n                setMessage(err.response?.data?.message || \"Error occurred.\");\n            }\n        };\n\n        // perform fetch\n        handleCategoryFetch();\n    }, []);  // Empty dependency array means this will run once when the component mounts\n\n    // Update sorted data whenever the sort option or original data changes\n    useEffect(() => {\n        const sorted = [...data];\n        switch (sortOption) {\n            case \"price-low-high\":\n                sorted.sort((a, b) => parseFloat(a.product_price.replace(/[^0-9.-]+/g,\"\")) - parseFloat(b.product_price.replace(/[^0-9.-]+/g,\"\")));\n                break;\n            case \"price-high-low\":\n                sorted.sort((a, b) => parseFloat(b.product_price.replace(/[^0-9.-]+/g,\"\")) - parseFloat(a.product_price.replace(/[^0-9.-]+/g,\"\")));\n                break;\n            case \"alphabetical-a-z\":\n                sorted.sort((a, b) => a.product_title.localeCompare(b.product_title));\n                break;\n            case \"alphabetical-z-a\":\n                sorted.sort((a, b) => b.product_title.localeCompare(a.product_title));\n                break;\n            // Placeholder for review-based sorting\n            case \"product-reviews-high-low\":\n                if (reviews) {\n                    sorted.sort((a, b) => reviews[b.listing_id].total_reviews - reviews[a.listing_id].total_reviews);\n                }\n            case \"seller-reviews-high-low\":\n                if (reviews) {\n                    sorted.sort((a, b) => reviews[b.listing_id].average_rating - reviews[a.listing_id].average_rating);\n                }\n            default:\n                break;\n        }\n        setSortedData(sorted);\n\n    }, [sortOption, data]);\n\n    // function for calling api to retrieve review data\n    const getReviewCountForProduct = async (listing_id) => {\n        try {\n            const res = await axios.get(\"http://localhost:8080/review-data\", {\n                params: { listing_id }\n            });\n            // Grab the first review from the array\n            const reviewData = res.data.reviews?.[0] || { average_rating: null, total_reviews: 0 };\n\n            return reviewData;\n        } catch (err) {\n            setMessage(err.response?.data?.message || \"Error occurred.\");\n            return null;\n        }\n    };\n\n    // function for calling api to retrieve review data\n    const getReviews = async (listing_id) => {\n        try {\n            const res = await axios.get(\"http://localhost:8080/reviews\", {\n                params: { listing_id }\n            });\n            // Grab results\n            const reviews = res.data.reviews;\n\n            return reviews;\n        } catch (err) {\n            setMessage(err.response?.data?.message || \"Error occurred.\");\n            return null;\n        }\n    };\n\n\n    // function for calling api to submit an order\n    const submitOrder = async (product) => {\n        if (quantity > product.quantity) {\n            alert(\"Cannot buy more than available in stock!\");\n            return;\n        }\n        const today = new Date();\n        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;\n\n        const seller_email = product.seller_email;\n        const listing_id = product.listing_id;\n        const buyer_email = userEmail;\n        const date = formattedDate;\n        const new_quantity = quantity || 1; // default to 1\n        const payment = product.product_price * quantity;\n\n        if (product.quantity < quantity) {\n            setMessage(\"Cannot Buy That Many\");\n            return;\n        }\n\n        try {\n            const res = await axios.post(\"http://localhost:8080/submit-order\", {\n                params: {\n                    seller_email,\n                    listing_id,\n                    buyer_email,\n                    date,\n                    quantity: new_quantity,\n                    payment\n                }\n            });\n            alert(\"Order Submitted Successfully\");\n\n        } catch (err) {\n            alert(err.response?.data?.message || \"Error occurred.\");\n        }\n    }\n\n    // apply all filtering to finalize display data\n    const displayData = useMemo(() => {\n        let filtered = sortedData;\n      \n        // apply category filter\n        if (selectedCategory !== \"default\") {\n          filtered = filtered.filter(\n            (product) => categoryHierarchy[selectedCategory].includes(product.category)\n          );\n        }\n      \n        // apply search filter\n        if (searchTerm.trim() !== \"\") {\n          filtered = filtered.filter((product) =>\n            product.product_title.toLowerCase().includes(searchTerm.toLowerCase()) ||\n            product.product_description.toLowerCase().includes(searchTerm.toLowerCase()) ||\n            product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||\n            product.seller_email.toLowerCase().includes(searchTerm.toLowerCase())\n          );\n        }\n      \n        return filtered;\n      }, [searchTerm, sortedData, selectedCategory]);\n\n    // fetch reviews for products\n    useEffect(() => {\n        async function fetchReviews() {\n            const newReviews = {};\n            for (const product of displayData) {\n                const review = await getReviewCountForProduct(product.listing_id);\n                newReviews[product.listing_id] = review;\n            }\n            setReviews(newReviews);\n        }\n    \n        if (displayData.length > 0) {\n            fetchReviews();\n        }\n    }, [displayData]);\n\n    // async function for creating an order for a specific product\n    async function handleBuyClick(product) {\n        await submitOrder(product);\n    }\n\n    // card click handler\n    async function handleCardClick(product) {\n        setActiveProduct(product);\n        console.log(categoryHierarchy[product.category]);\n        // fetch reviews for active product\n        const reviews = await getReviews(product.listing_id);\n        setActiveReviews(reviews);\n    };\n\n    // back click handler\n    const handleBackClick = () => {\n        // clear active product and active reviews\n        setActiveProduct(null);\n        setActiveReviews([]);\n    };\n\n    const handleQuantityChange = (event) => {\n        setQuantity(Number(event.target.value));\n    };\n    \n    return (\n        <div>\n            { activeProduct === null ? \n            ( \n            <div>\n                <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm}/>\n                <div className=\"products-div\">\n                    <div className=\"sorting-div\">\n                        <h3 className=\"sort-prompt\">Category</h3>\n                        <select\n                            className=\"sort-options\"\n                            id=\"category-options\"\n                            name=\"category\"\n                            value={selectedCategory}\n                            onChange={(e) => setSelectedCategory(e.target.value)}>\n                            {/* Add category options here */}\n                            <option value=\"default\">Default</option>\n                            {(categories || []).map((category, index) => (\n                                <option value={category.parent_category}>{category.parent_category}</option>\n                            ))}\n                        </select>\n                        <h3 className=\"sort-prompt\">Sort By</h3>\n                        <select \n                            className=\"sort-options\" \n                            id=\"sorting-options\" \n                            name=\"sort\"\n                            value={sortOption}\n                            onChange={(e) => setSortOption(e.target.value)}>\n                            <option value=\"default\">Default</option>\n                            <option value=\"price-low-high\">Price: Low to High</option>\n                            <option value=\"price-high-low\">Price: High to Low</option>\n                            <option value=\"alphabetical-a-z\">Alphabetical: A-Z</option>\n                            <option value=\"alphabetical-z-a\">Alphabetical: Z-A</option>\n                            <option value=\"product-reviews-high-low\"># Reviews</option>\n                            <option value=\"seller-reviews-high-low\">Avg. Rating</option>\n                        </select>\n                    </div>\n                    <div className=\"product-cards-div\">\n                    {displayData.length > 0 ? (\n                            displayData.map((product, index) => (\n                                <ProductCard\n                                    key={index}\n                                    title={product.product_title}\n                                    category={product.category}\n                                    description={product.product_description}\n                                    seller={product.seller_email}\n                                    image={placeholder}\n                                    price={product.product_price}\n                                    reviewData={reviews[product.listing_id]}\n                                    onClick={() => handleCardClick(product)}\n                                    status={0}\n                                />\n                            ))\n                        ) : (\n                            <p className=\"loading\">Loading...</p>\n                        )}\n                    </div>\n                </div>\n            </div>\n            ) : (\n            // Other Render Option: Specific Product Page\n            <div className=\"col\">\n                <div className=\"row\">\n                    <img className=\"back\" src={back_img} onClick={() => handleBackClick()}></img>\n                    <div className=\"product-display\">\n                        <img className=\"pimage\" src={placeholder}></img>\n                    </div>\n                    <div className=\"product-display\">\n                        <h1 className=\"ptitle\">\n                            {activeProduct.product_title}\n                        </h1>\n                        <h1 className=\"name\">\n                            {activeProduct.product_name}\n                        </h1>\n                        <h1 className=\"category\">\n                            {activeProduct.category}\n                        </h1>\n                        <h2 className=\"pdescription\">\n                            {activeProduct.product_description}\n                        </h2>\n                        <h2 className=\"pseller\">\n                            Seller: {activeProduct.seller_email}\n                        </h2>\n                        <div className=\"prating-div\">\n                            <h2 className=\"pstar-logo\">\n                                ★\n                            </h2>\n                            <h2 className=\"prating\">\n                                {reviews[activeProduct.listing_id]?.average_rating ?? \"-\"}/5\n                            </h2>\n                            <h2 className=\"preview-count\">\n                                ({reviews[activeProduct.listing_id]?.total_reviews ?? \"?\"})\n                            </h2>\n                        </div>\n                        <h2 className=\"pprice\">\n                            ${activeProduct.product_price}\n                        </h2>\n                            {activeProduct.quantity > 0 ?\n                            (\n                            <div className=\"buy-div\">\n                                <label className=\"quantity-label\" htmlFor=\"quantity\">Quantity: </label>\n                                <select className=\"quantity-select\" id=\"quantity\" value={quantity} onChange={handleQuantityChange}>\n                                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (\n                                    <option key={num} value={num}>\n                                        {num}\n                                    </option>\n                                    ))}\n                                </select>\n                                <button className=\"buy-button\" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>\n                                <h2 className=\"in-stock\">{activeProduct.quantity} In Stock</h2>\n                            </div>\n                            ) : (\n                                <h2 className=\"out-of-stock\">{activeProduct.quantity} Out Of Stock</h2>\n                            )}\n                    </div>\n                </div>\n                <div className=\"reviews-div\">\n                    <h1>Product Reviews:</h1>\n                    <hr />\n                    {activeReviews && activeReviews.length > 0 ? \n                        (\n                        activeReviews.map((review, index) => (\n                            <div className=\"review-data-div\" key={index}>\n                                <h2 className=\"review-star\">{\"★\".repeat(review.rate)}</h2>\n                                <p className=\"review-desc\">{review.review_desc}</p>\n                            </div>\n                            ))\n                        ) : (\n                        <h2>No Reviews Yet</h2>\n                    )}\n                </div>\n            </div>\n            )}\n        </div>\n    );\n};\n\nexport default Products;
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/components/Products.js b/frontend/src/components/Products.js
+--- a/frontend/src/components/Products.js	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/frontend/src/components/Products.js	(date 1745795044425)
+@@ -7,6 +7,7 @@
+ import Search from "./Search";
+ import { useMemo } from "react";
+ import { useUser } from './UserContext';
++import { useNavigate } from "react-router-dom";
+ 
+ const Products = () => {
+     const [data, setData] = useState([]);
+@@ -22,6 +23,7 @@
+     const [activeReviews, setActiveReviews] = useState([]);
+     const [quantity, setQuantity] = useState(1);
+     const { userEmail } = useUser();
++    const navigate = useNavigate();
+ 
+     // Fetch products only when the component mounts
+     useEffect(() => {
+@@ -124,47 +126,17 @@
+             setMessage(err.response?.data?.message || "Error occurred.");
+             return null;
+         }
+-    };
++    };    
+ 
+-
+-    // function for calling api to submit an order
+-    const submitOrder = async (product) => {
+-        if (quantity > product.quantity) {
+-            alert("Cannot buy more than available in stock!");
+-            return;
+-        }
+-        const today = new Date();
+-        const formattedDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+-
+-        const seller_email = product.seller_email;
+-        const listing_id = product.listing_id;
+-        const buyer_email = userEmail;
+-        const date = formattedDate;
+-        const new_quantity = quantity || 1; // default to 1
+-        const payment = product.product_price * quantity;
+-
+-        if (product.quantity < quantity) {
+-            setMessage("Cannot Buy That Many");
+-            return;
+-        }
+-
+-        try {
+-            const res = await axios.post("http://localhost:8080/submit-order", {
+-                params: {
+-                    seller_email,
+-                    listing_id,
+-                    buyer_email,
+-                    date,
+-                    quantity: new_quantity,
+-                    payment
+-                }
+-            });
+-            alert("Order Submitted Successfully");
+-
+-        } catch (err) {
+-            alert(err.response?.data?.message || "Error occurred.");
+-        }
+-    }
++    // filter out duplicate categories for display
++    const uniqueParentCategories = useMemo(() => {
++        const seen = new Set();
++        return (categories || []).filter(cat => {
++            if (seen.has(cat.parent_category)) return false;
++            seen.add(cat.parent_category);
++            return true;
++        });
++    }, [categories]);
+ 
+     // apply all filtering to finalize display data
+     const displayData = useMemo(() => {
+@@ -208,7 +180,22 @@
+ 
+     // async function for creating an order for a specific product
+     async function handleBuyClick(product) {
+-        await submitOrder(product);
++        const orderDetails = {
++            date: new Date().toISOString().slice(0,10),
++            listing_id: product.listing_id,
++            seller_email: product.seller_email,
++            buyer_email: userEmail,
++            product_title: product.product_title,
++            unit_price: parseFloat(product.product_price),
++            quantity,
++            total_price: parseFloat(product.product_price) * quantity
++        };
++
++        if (product.quantity < orderDetails.quantity) {
++            setMessage("Order is not allowed: not enough stock left for this purchase.");
++        }
++
++        navigate("/order-review", { state: { order: orderDetails }});
+     }
+ 
+     // card click handler
+@@ -339,7 +326,7 @@
+                                     </option>
+                                     ))}
+                                 </select>
+-                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>BUY NOW</button>
++                                <button className="buy-button" onClick={() => handleBuyClick(activeProduct)}>Order</button>
+                                 <h2 className="in-stock">{activeProduct.quantity} In Stock</h2>
+                             </div>
+                             ) : (
+Index: frontend/src/pages/pages-styles/OrderReview.css
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/pages-styles/OrderReview.css b/frontend/src/pages/pages-styles/OrderReview.css
+new file mode 100644
+--- /dev/null	(date 1745795044426)
++++ b/frontend/src/pages/pages-styles/OrderReview.css	(date 1745795044426)
+@@ -0,0 +1,63 @@
++.order-confirmation-container {
++    height: 100vh;
++    width: 100%;
++    display: flex;
++    flex-direction: row;
++    justify-content: flex-start;
++    align-items: center;
++    background-image: url("./images/order-review-image.jpg");
++    background-size: auto 100%;
++    background-position: right center;
++    background-repeat: no-repeat;
++}
++
++.order-preview-container {
++    height: 100%;
++    width: 40%;
++    padding-left: 60px;
++    padding-right: 60px;
++    display: flex;
++    flex-direction: column;
++    justify-content: center;
++    align-items: flex-start;
++    background-color: white;
++}
++
++#order-back-btn {
++    all: unset;
++    margin-right: 10px;
++}
++
++#order-review-title {
++    font-size: 40px;
++}
++
++.divider {
++    width: 100%;
++    border-bottom: 1px solid black;
++}
++
++.item-label {
++    font-weight: bold;
++}
++
++.item-container {
++    width: 100%;
++    display: grid;
++    grid-template-columns: auto auto auto;
++}
++
++#check-out-btn {
++    all: unset;
++    align-self: flex-end;
++    margin-top: 50px;
++    color: white;
++    background-color: #041E42;
++    padding: 3% 6%;
++    border-radius: 15px;
++    transition: transform 0.2s ease;
++}
++
++#check-out-btn:hover {
++    transform: translateY(-3px);
++}
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"93c02b2f-6a0f-43f2-bc61-d07ac3d594d8\" name=\"Changes\" comment=\"\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/dataSources.local.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/dataSources.local.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/dataSources.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/dataSources.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234.xml\" beforeDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234/storage_v2/_src_/schema/main.uQUzAA.meta\" beforeDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/backend/db.js\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/backend/db.js\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/dev_start.sh\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/dev_start.sh\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"Python Script\" />\n        <option value=\"JavaScript File\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 8\n}</component>\n  <component name=\"ProjectId\" id=\"2ubEXyPiePP5dOEsltEMHLpIf9L\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\">{\n  &quot;keyToString&quot;: {\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\n    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,\n    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,\n    &quot;git-widget-placeholder&quot;: &quot;master&quot;,\n    &quot;last_opened_file_path&quot;: &quot;/Users/John/Desktop/NittanyBusiness&quot;,\n    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,\n    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,\n    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,\n    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\n    &quot;ts.external.directory.path&quot;: &quot;/Applications/PyCharm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\n  },\n  &quot;keyToStringList&quot;: {\n    &quot;DatabaseDriversLRU&quot;: [\n      &quot;sqlite&quot;\n    ]\n  }\n}</component>\n  <component name=\"RecentsManager\">\n    <key name=\"MoveFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$/frontend/public\" />\n      <recent name=\"$PROJECT_DIR$/backend\" />\n    </key>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-js-predefined-d6986cc7102b-76f8388c3a79-JavaScript-PY-243.24978.54\" />\n        <option value=\"bundled-python-sdk-91e3b7efe1d4-466328ff949b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.24978.54\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"93c02b2f-6a0f-43f2-bc61-d07ac3d594d8\" name=\"Changes\" comment=\"\" />\n      <created>1742508916999</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1742508916999</updated>\n      <workItem from=\"1742508918067\" duration=\"4688000\" />\n      <workItem from=\"1742587929619\" duration=\"16038000\" />\n      <workItem from=\"1742919299197\" duration=\"1747000\" />\n      <workItem from=\"1743282090982\" duration=\"165000\" />\n      <workItem from=\"1743989537665\" duration=\"5493000\" />\n      <workItem from=\"1745609807811\" duration=\"4044000\" />\n      <workItem from=\"1745616422503\" duration=\"401000\" />\n    </task>\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n  <component name=\"UnknownFeatures\">\n    <option featureType=\"com.intellij.fileTypeFactory\" implementationName=\"*.db\" />\n    <option featureType=\"com.intellij.fileTypeFactory\" implementationName=\".env\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/.idea/workspace.xml	(date 1745795141315)
+@@ -5,14 +5,15 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="93c02b2f-6a0f-43f2-bc61-d07ac3d594d8" name="Changes" comment="">
+-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/21c70800-99c2-4ed9-bf28-34a2d81d0606.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234.xml" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/9a6a0670-4344-4e62-9b6c-b4371e713234/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/backend/db.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/db.js" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/dev_start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/dev_start.sh" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Checkout.js" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/frontend/src/pages/OrderReview.js" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/frontend/src/pages/pages-styles/Checkout.css" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/frontend/src/pages/pages-styles/OrderReview.css" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/frontend/src/pages/pages-styles/images/order-review-image.jpg" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/backend/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/server.js" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/frontend/src/components/Products.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Products.js" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/nittanybusiness.db" beforeDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -38,27 +39,27 @@
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent">{
+-  &quot;keyToString&quot;: {
+-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+-    &quot;last_opened_file_path&quot;: &quot;/Users/John/Desktop/NittanyBusiness&quot;,
+-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+-    &quot;ts.external.directory.path&quot;: &quot;/Applications/PyCharm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
+-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
++  <component name="PropertiesComponent"><![CDATA[{
++  "keyToString": {
++    "RunOnceActivity.ShowReadmeOnStart": "true",
++    "RunOnceActivity.git.unshallow": "true",
++    "dart.analysis.tool.window.visible": "false",
++    "git-widget-placeholder": "Merging master",
++    "last_opened_file_path": "/Users/John/Desktop/NittanyBusiness",
++    "node.js.detected.package.eslint": "true",
++    "node.js.detected.package.tslint": "true",
++    "node.js.selected.package.eslint": "(autodetect)",
++    "node.js.selected.package.tslint": "(autodetect)",
++    "nodejs_package_manager_path": "npm",
++    "ts.external.directory.path": "/Applications/PyCharm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
++    "vue.rearranger.settings.migration": "true"
+   },
+-  &quot;keyToStringList&quot;: {
+-    &quot;DatabaseDriversLRU&quot;: [
+-      &quot;sqlite&quot;
++  "keyToStringList": {
++    "DatabaseDriversLRU": [
++      "sqlite"
+     ]
+   }
+-}</component>
++}]]></component>
+   <component name="RecentsManager">
+     <key name="MoveFile.RECENT_KEYS">
+       <recent name="$PROJECT_DIR$/frontend/public" />
+@@ -88,6 +89,7 @@
+       <workItem from="1743989537665" duration="5493000" />
+       <workItem from="1745609807811" duration="4044000" />
+       <workItem from="1745616422503" duration="401000" />
++      <workItem from="1745618881111" duration="31167000" />
+     </task>
+     <servers />
+   </component>
+@@ -98,4 +100,26 @@
+     <option featureType="com.intellij.fileTypeFactory" implementationName="*.db" />
+     <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
+   </component>
++  <component name="Vcs.Log.Tabs.Properties">
++    <option name="TAB_STATES">
++      <map>
++        <entry key="MAIN">
++          <value>
++            <State />
++          </value>
++        </entry>
++      </map>
++    </option>
++  </component>
++  <component name="XDebuggerManager">
++    <breakpoint-manager>
++      <breakpoints>
++        <line-breakpoint enabled="true" type="javascript">
++          <url>file://$PROJECT_DIR$/frontend/src/components/Login.js</url>
++          <properties lambdaOrdinal="-1" />
++          <option name="timeStamp" value="1" />
++        </line-breakpoint>
++      </breakpoints>
++    </breakpoint-manager>
++  </component>
+ </project>
+\ No newline at end of file
+Index: .idea/dataSources.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"DataSourceManagerImpl\" format=\"xml\" multifile-model=\"true\">\n    <data-source source=\"LOCAL\" name=\"nittanybusiness.db\" uuid=\"7d5d40b7-0249-4884-a1c5-e68a4f12a1ab\">\n      <driver-ref>sqlite.xerial</driver-ref>\n      <synchronize>true</synchronize>\n      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>\n      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/backend/nittanybusiness.db</jdbc-url>\n      <working-dir>$ProjectFileDir$</working-dir>\n    </data-source>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/dataSources.xml b/.idea/dataSources.xml
+--- a/.idea/dataSources.xml	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/.idea/dataSources.xml	(date 1745795141321)
+@@ -1,12 +1,20 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+-    <data-source source="LOCAL" name="nittanybusiness.db" uuid="7d5d40b7-0249-4884-a1c5-e68a4f12a1ab">
++    <data-source source="LOCAL" name="nittanybusiness" uuid="ca2d5f44-2e8e-4a85-a6c9-2ed0c3a032f0">
+       <driver-ref>sqlite.xerial</driver-ref>
+       <synchronize>true</synchronize>
+       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/backend/nittanybusiness.db</jdbc-url>
+       <working-dir>$ProjectFileDir$</working-dir>
++      <libraries>
++        <library>
++          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.45.1/org/xerial/sqlite-jdbc/3.45.1.0/sqlite-jdbc-3.45.1.0.jar</url>
++        </library>
++        <library>
++          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.45.1/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar</url>
++        </library>
++      </libraries>
+     </data-source>
+   </component>
+ </project>
+\ No newline at end of file
+Index: frontend/src/pages/Checkout.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/Checkout.js b/frontend/src/pages/Checkout.js
+new file mode 100644
+--- /dev/null	(date 1745795044425)
++++ b/frontend/src/pages/Checkout.js	(date 1745795044425)
+@@ -0,0 +1,201 @@
++import React, { useState, useEffect } from "react";
++import { useLocation, useNavigate } from "react-router-dom";
++import axios from "axios";
++import { useUser } from "../components/UserContext";
++import "./pages-styles/Checkout.css";
++import NavBar from "../components/NavBar";
++
++const CheckOut = () => {
++    const navigate = useNavigate();
++    const { state } = useLocation();
++    const { userEmail } = useUser();
++
++    const [cards, setCards] = useState([]);
++    const [useNew, setUseNew] = useState(false);
++    const [selectedCard, setSelectedCard] = useState("");
++    const [cardType, setCardType] = useState("");
++    const [creditNum, setCreditNum] = useState("");
++    const [expDate, setExpDate] = useState("");
++    const [cvv, setCVV] = useState("");
++    const [message, setMessage] = useState("");
++
++    useEffect(() => {
++        if (!state?.order) {
++            navigate("/home", { replace: true });
++            return null;
++        }
++        fetchCreditCardInfo();
++    }, [navigate, state, userEmail]);
++
++    if (!state?.order) return null;
++
++    const { date, listing_id, seller_email, buyer_email, product_title, unit_price, quantity, total_price } = state.order;
++
++    const fetchCreditCardInfo = async () => {
++        try {
++            const res = await axios.get("http://localhost:8080/credit-cards", {
++                params: { owner_email: userEmail }
++            });
++            
++            setCards(res.data.cards || []);
++            if (res.data.cards.length > 0) {
++                setSelectedCard(res.data.cards[0].credit_card_num);
++                console.log("Credit card info fetched successfully")
++            } else {
++                setUseNew(true);
++            } 
++        } catch (err) {
++            setMessage("Error: failed to load credit card information.");
++        }
++    };
++
++    const handleClick = () => {
++        setUseNew(prev => !prev);
++    }
++
++    const handleCardInput = (e) => {
++        let input = e.target.value;
++        input = input.replace(/\D/g, '');
++        input = input.slice(0, 16);
++        input = input.match(/.{1,4}/g)?.join('-') || '';
++        setCreditNum(input);
++    };
++
++    const handleCVV = (e) => {
++        let input = e.target.value;
++        input = input.slice(0,3);
++        setCVV(input);
++    };
++    
++    const handleConfirm = async (e) => {
++        e?.preventDefault();
++        // build credit_card object either from saved or from form
++        const credit_card = useNew
++            ? {
++                credit_card_num: creditNum.replace(/-/g, ""),
++                card_type: cardType,
++                expire_month: expDate.split("-")[1],
++                expire_year: expDate.split("-")[0],
++                security_code: cvv,
++            }
++            : { credit_card_num: selectedCard };
++
++        try {
++            await axios.post("http://localhost:8080/checkout", {
++            seller_email,
++            listing_id,
++            buyer_email: userEmail,
++            date: new Date().toISOString().slice(0, 10),
++            quantity,
++            payment: total_price,
++            credit_card,
++            });
++            navigate("/profile");
++        } catch (err) {
++            setMessage(err.response?.data?.error || "Checkout failed");
++        }
++    };
++
++    return (
++        <>
++        <NavBar />
++        <div className="checkout-container">
++            <div className="order-preview-container"> 
++                <button id="order-back-btn" onClick={() => navigate(-1)}>&#8592;</button>
++
++                <h1 id="order-review-title">Select Your Payment Method</h1>
++
++                <div className="divider" />
++
++                <div className="payment-list-container">
++                    {cards.length > 0 && !useNew && (
++                        <div className="card-radio-container">
++                            <p>Saved Credit Card</p>
++
++                            {cards.map((c) => (
++                                <label key={c.credit_card_num} className="card-radio-option">
++                                    <input
++                                    type="radio"
++                                    name="card"
++                                    value={c.credit_card_num}
++                                    checked={selectedCard === c.credit_card_num}
++                                    onChange={(e) => setSelectedCard(e.target.value)}
++                                    />
++                                    {c.card_type} ••••{c.credit_card_num.slice(-4)}
++                                </label>
++                            ))}
++                        </div>
++                    )}
++                    
++                    <button id="new-btn" onClick={handleClick}>Use New Credit Card</button>
++                    {useNew && (
++                        <div>
++                            <form onSubmit={handleConfirm}>
++                                <fieldset>
++                                    <div className="form-select">
++                                        <p className="form-label">Select Card Type</p>
++                                        <select
++                                            value={cardType}
++                                            onChange={e => setCardType(e.target.value)}
++                                            required
++                                        >
++                                            <option value="" disabled> -- Select -- </option>
++                                            <option value="master">Master</option>
++                                            <option value="visa">Visa</option>
++                                            <option value="discover">Discover</option>
++                                            <option value="amex">American Express</option>
++                                        </select>
++                                    </div>
++
++                                    <p className="form-label">Credit Card Number</p>
++                                    <input 
++                                        type="text" 
++                                        value={creditNum} 
++                                        placeholder="Credit Card Number" 
++                                        onChange={handleCardInput} 
++                                        required 
++                                    />
++
++                                    <p className="form-label">Expiration Date</p>
++                                    <input 
++                                        type="month" 
++                                        value={expDate} 
++                                        onChange={(e) => setExpDate(e.target.value)} 
++                                        required 
++                                    />
++
++                                    <p className="form-label">CVV</p>
++                                    <input 
++                                        type="number" 
++                                        value={cvv} 
++                                        placeholder="CVV" 
++                                        onChange={handleCVV} 
++                                        required 
++                                    />
++
++                                    <button type="submit" id="submit-btn">Save</button>
++                                </fieldset>
++                            </form>
++                        </div>
++                    )}
++                </div>
++
++
++                    
++                <div className="divider" />
++                <div className="item-container">
++                    <p className="item-label">Total Due</p>
++                    <p />
++                    <p>${total_price}</p>
++                </div>
++
++                {!useNew && cards.length > 0 && (
++                    <button className="confirm-btn" onClick={handleConfirm}>Confirm and Pay</button>
++                )}
++            </div>
++        </div>
++        </>
++    );
++};
++
++export default CheckOut;
+\ No newline at end of file
+Index: frontend/src/App.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import './App.css';\nimport React from \"react\";\nimport { BrowserRouter as Router, Routes, Route } from \"react-router-dom\";\nimport Landing from \"./pages/Landing\";\nimport Login from \"./components/Login\";\nimport SignUp from \"./components/SignUp\";\nimport Home from \"./pages/Home\";\nimport Profile from \"./pages/Profile\"\nimport Helpdesk from \"./components/Helpdesk\";\nimport { UserProvider } from './components/UserContext';\n\nfunction App() {\n  return (\n    <UserProvider>\n      <Router>\n              <Routes>\n                  <Route path=\"/\" element={<Landing />} />\n                  <Route path=\"/login\" element={<Login />}/>\n                  <Route path=\"/signup\" element={<SignUp />} />\n                  <Route path=\"/home\" element={<Home />} />\n                  <Route path=\"/profile\" element={<Profile />} />\n                  <Route path=\"/helpdesk\" element={<Helpdesk />} />\n              </Routes>\n      </Router>\n    </UserProvider>\n  );\n}\n\nexport default App;\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/App.js b/frontend/src/App.js
+--- a/frontend/src/App.js	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/frontend/src/App.js	(date 1745795044424)
+@@ -1,13 +1,15 @@
+ import './App.css';
+ import React from "react";
+ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
++import { UserProvider } from './components/UserContext';
+ import Landing from "./pages/Landing";
+ import Login from "./components/Login";
+ import SignUp from "./components/SignUp";
+ import Home from "./pages/Home";
+ import Profile from "./pages/Profile"
+ import Helpdesk from "./components/Helpdesk";
+-import { UserProvider } from './components/UserContext';
++import OrderReview from "./pages/OrderReview";
++import Checkout from "./pages/Checkout";
+ 
+ function App() {
+   return (
+@@ -20,6 +22,8 @@
+                   <Route path="/home" element={<Home />} />
+                   <Route path="/profile" element={<Profile />} />
+                   <Route path="/helpdesk" element={<Helpdesk />} />
++                  <Route path="/order-review" element={<OrderReview />}/>
++                  <Route path="/order-checkout" element={<Checkout />}/>
+               </Routes>
+       </Router>
+     </UserProvider>
+Index: frontend/src/pages/pages-styles/Checkout.css
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/pages-styles/Checkout.css b/frontend/src/pages/pages-styles/Checkout.css
+new file mode 100644
+--- /dev/null	(date 1745795044426)
++++ b/frontend/src/pages/pages-styles/Checkout.css	(date 1745795044426)
+@@ -0,0 +1,21 @@
++.checkout-container {
++    height: 100vh;
++    width: 100%;
++    display: flex;
++    flex-direction: row;
++    justify-content: flex-start;
++    align-items: center;
++    background-image: url("./images/order-review-image.jpg");
++    background-size: auto 100%;
++    background-position: right center;
++    background-repeat: no-repeat;
++}
++
++.payment-list-container {
++    width: 100%;
++    display: flex;
++    flex-direction: column;
++    justify-content: center;
++    align-items: flex-start;
++
++}
+\ No newline at end of file
+Index: .idea/dataSources.local.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"dataSourceStorageLocal\" created-in=\"PY-243.24978.54\">\n    <data-source name=\"nittanybusiness.db\" uuid=\"7d5d40b7-0249-4884-a1c5-e68a4f12a1ab\">\n      <database-info product=\"SQLite\" version=\"3.45.1\" jdbc-version=\"4.2\" driver-name=\"SQLite JDBC\" driver-version=\"3.45.1.0\" dbms=\"SQLITE\" exact-version=\"3.45.1\" exact-driver-version=\"3.45\">\n        <identifier-quote-string>&quot;</identifier-quote-string>\n      </database-info>\n      <case-sensitivity plain-identifiers=\"mixed\" quoted-identifiers=\"mixed\" />\n      <secret-storage>master_key</secret-storage>\n      <auth-provider>no-auth</auth-provider>\n      <schema-mapping>\n        <introspection-scope>\n          <node kind=\"schema\" qname=\"@\" />\n        </introspection-scope>\n      </schema-mapping>\n    </data-source>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/dataSources.local.xml b/.idea/dataSources.local.xml
+--- a/.idea/dataSources.local.xml	(revision 22517e86225687eb87ea9f83fee5797d305e8a9d)
++++ b/.idea/dataSources.local.xml	(date 1745795141322)
+@@ -1,12 +1,11 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="dataSourceStorageLocal" created-in="PY-243.24978.54">
+-    <data-source name="nittanybusiness.db" uuid="7d5d40b7-0249-4884-a1c5-e68a4f12a1ab">
++    <data-source name="nittanybusiness" uuid="ca2d5f44-2e8e-4a85-a6c9-2ed0c3a032f0">
+       <database-info product="SQLite" version="3.45.1" jdbc-version="4.2" driver-name="SQLite JDBC" driver-version="3.45.1.0" dbms="SQLITE" exact-version="3.45.1" exact-driver-version="3.45">
+         <identifier-quote-string>&quot;</identifier-quote-string>
+       </database-info>
+       <case-sensitivity plain-identifiers="mixed" quoted-identifiers="mixed" />
+-      <secret-storage>master_key</secret-storage>
+       <auth-provider>no-auth</auth-provider>
+       <schema-mapping>
+         <introspection-scope>
+Index: frontend/src/pages/OrderReview.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/OrderReview.js b/frontend/src/pages/OrderReview.js
+new file mode 100644
+--- /dev/null	(date 1745795044425)
++++ b/frontend/src/pages/OrderReview.js	(date 1745795044425)
+@@ -0,0 +1,60 @@
++import React from "react";
++import { useUser } from "../components/UserContext.js";
++import { useLocation, useNavigate } from "react-router-dom";
++import axios from "axios";
++import "./pages-styles/OrderReview.css"
++import NavBar from "../components/NavBar.js";
++
++const OrderConfirmation = () => {
++    const { state } = useLocation();
++    const navigate = useNavigate();
++
++    if (!state?.order) {
++        console.log("Error: cannot retrieve order details.");
++        navigate("/", { replace: true });
++        return null;
++    }
++
++    const { order } = state; // getting order details
++
++    const handleConfirm = () => {
++        navigate("/order-checkout", { state: { order: order } });
++    };
++
++    return (
++        <>
++            <NavBar />
++            <div className="order-confirmation-container">
++                <div className="order-preview-container">
++
++                    <button id="order-back-btn" onClick={() => navigate(-1)}>&#8592; Need more time?</button>
++
++                    <h1 id="order-review-title">Review Your Order</h1>
++                    
++                    <div className="divider" />
++                    
++                    <div className="item-container">
++                        <p className="item-label">Item</p>
++                        <p className="item-label">Quantity</p>
++                        <p className="item-label">Unit Price</p>
++
++
++                        <p>{order.product_title}</p>
++                        <p>{order.quantity}</p>
++                        <p>${order.unit_price}</p>
++
++                        <p /><p /><p />
++
++                        <p />
++                        <p className="item-label">Total</p>
++                        <p>${order.total_price.toFixed(2)}</p>
++                    </div>
++
++                    <button id="check-out-btn" onClick={handleConfirm}>Secure Checkout</button>
++                </div>
++            </div>
++        </>
++    );
++};
++
++export default OrderConfirmation;
+\ No newline at end of file

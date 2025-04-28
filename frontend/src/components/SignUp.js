@@ -117,10 +117,11 @@ const SignUp = () => {
                                                 onChange={e => setCardType(e.target.value)}
                                                 required
                                             >
-                                                <option value="master">Master</option>
-                                                <option value="visa">Visa</option>
-                                                <option value="discover">Discover</option>
-                                                <option value="amex">American Express</option>
+                                                <option value="" disabled> -- Select -- </option>
+                                                <option value="Master">Master</option>
+                                                <option value="Visa">Visa</option>
+                                                <option value="Discover">Discover</option>
+                                                <option value="AMEX">American Express</option>
                                             </select>
                                         </div>
 

@@ -7,7 +7,7 @@
     flex-direction: row;
     align-items: center;
     padding: 10px;
-    height: 40px;
+    height: 70px;
     background-color: rgba(30, 64, 124);
     transition: transform 0.3s ease-in-out;
     z-index: 100;
@@ -47,16 +47,34 @@
     padding-right: 10px;
     color: white;
     text-decoration: none;
-    font-weight: bold;
+    font-size: 16px;
+    /* font-weight: bold; */
+    transition: color 0.3s ease;
 }
 
 /* Style for the active tab */
 .links a.active {
-    font-size: 18px;        /* Make it slightly bigger */
-    color: rgb(179, 179, 179);         /* Change the color */
-    font-weight: bold;
+    text-decoration: underline;
 }
 
 .links a:hover {
     color: rgb(179, 179, 179);         /* Change color on hover */
 }
+
+#logout-btn {
+    color: rgba(30, 64, 124);
+    background-color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+#logout-btn:hover {
+    background-color: rgb(30, 64, 124);;
+    color: white;
+};

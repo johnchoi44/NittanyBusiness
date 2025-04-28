@@ -1,0 +1,129 @@
+.checkout-container {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    background-image: url("./images/order-review-image.jpg");
+    background-size: auto 100%;
+    background-position: right center;
+    background-repeat: no-repeat;
+}
+
+.payment-list-container {
+    max-height: 300px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    row-gap: 10px;
+    margin: 20px 0px;
+    overflow-y: scroll;
+}
+
+.card-radio-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;;
+    row-gap: 10px;
+}
+
+.card-radio-container input[type="radio"] {
+    margin: 0px 20px;
+}
+
+.card-radio-container label {
+    height: 50px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    border-radius: 10px;
+    background-color: rgb(242, 242, 242);
+    transition: background-color 0.2s ease;
+}
+
+.card-radio-container label:hover {
+    cursor: pointer;
+    background-color: rgb(220, 220, 220);
+}
+
+#new-btn {
+    all: unset;
+    height: 50px;
+    width: 100%;
+    text-indent: 20px;
+    display: flex;  
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    border-radius: 10px;
+    background-color: rgb(242, 242, 242);
+    transition: background-color 0.2s ease;
+}
+
+#new-btn:hover {
+    cursor: pointer;
+    background-color: rgb(220, 220, 220);
+}
+
+#close-btn {
+    all: unset;
+}
+
+#confirm-btn {
+    all: unset;
+    align-self: flex-end;
+    margin-top: 50px;
+    color: white;
+    background-color: #041E42;
+    padding: 3% 6%;
+    border-radius: 15px;
+    transition: 
+        background-color 0.2s ease, 
+        transform 0.2s ease;
+}
+
+#confirm-btn:hover {
+    background-color: rgba(30, 64, 124);
+    transform: translateY(-3px);
+}
+
+.card-form-label {
+    margin: 10px 0px;
+}
+
+.new-card-form {
+    width: 100%;
+}
+
+.new-card-form fieldset {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.new-card-form input {
+    all: unset;
+    background-color: rgb(242, 242, 242);
+    padding: 2.5%;
+    border-radius: 15px;
+}
+
+.new-card-form select {
+    all: unset;
+    background-color: rgb(242, 242, 242);
+    padding: 2.5%;
+    border-radius: 15px;
+}
+
+.new-card-form input[type=number]::-webkit-inner-spin-button,
+.new-card-form input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

@@ -125,7 +125,7 @@ const Helpdesk = () => {
 
                 {searchedUser && (
                     <div className="user-card">
-                        <h3>User Found:</h3>
+                        <h3><strong>User Found:</strong></h3>
                         <p>Email: {searchedUser.email}</p>
                         <p>Current Type: {searchedUser.user_type}</p>
 
@@ -137,7 +137,6 @@ const Helpdesk = () => {
                             <option value="buyer">Buyer</option>
                             <option value="seller">Seller</option>
                             <option value="helpdesk">Helpdesk</option>
-                            <option value="admin">Admin</option>
                         </select>
                     </div>
                 )}
@@ -167,7 +166,6 @@ const Helpdesk = () => {
                                 <select onChange={(e) => handleRequestStatusChange(req.request_id, e.target.value)} defaultValue={req.request_status}>
                                     <option value="Pending">Pending</option>
                                     <option value="Resolved">Resolved</option>
-                                    <option value="Closed">Closed</option>
                                 </select>
                             </li>
                         ))}
