@@ -1,5 +1,18 @@
 # NittanyBusiness
+
 CMPSC 431 Database Management Project
+
+## Contributors
+
+Eric Shoch @shocheric
+Kenzy Kim @k3nzzy
+Shibli Nomani @Khavab
+Yongjun Choi @johnchoi44
+
+## Project Progress
+
+For project roadmap, refer to [#7 Implementation Tracker](https://github.com/johnchoi44/NittanyBusiness/issues/7).
+See [open issues](https://github.com/johnchoi44/NittanyBusiness/issues) for full list of known issues and propsed features.
 
 ## Requirements
 
