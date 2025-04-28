@@ -137,8 +137,6 @@ app.post("/login", (req, res) => {
 });
 
 // Fetch user information
-// server.js
-
 app.get("/user-info", (req, res) => {
     const { email, type } = req.query;
     if (!email || !type) {
@@ -185,7 +183,8 @@ app.get("/user-info", (req, res) => {
             z.city,
             z.state,
             s.bank_routing_number,
-            s.bank_account_number
+            s.bank_account_number,
+            s.balance
         FROM Users AS u
         JOIN Sellers AS s
             ON s.email = u.email
@@ -204,6 +203,138 @@ app.get("/user-info", (req, res) => {
         if (!row) return res.status(404).json({ error: "User not found" });
         res.json(row);
     });
+});
+
+// Buyer profile update
+app.put("/update-buyer", async (req, res) => {
+    const {
+        email,
+        password,
+        street_num,
+        street_name,
+        city,
+        zipcode,
+        state,
+        credit_card_num,
+        card_type,
+        expire_month,
+        expire_year,
+        security_code
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        if (password && password.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await runAsync(
+                `UPDATE Users SET password_hash = ? WHERE email = ?`,
+                [hashedPassword, email]
+            );
+        }
+
+        await runAsync(
+            `INSERT OR REPLACE INTO Zipcode_Info (zipcode, city, state)
+             VALUES (?, ?, ?)`,
+            [zipcode, city, state]
+        );
+
+        const addressRows = await allAsync(
+            `SELECT buyer_address_id AS address_id FROM Buyer WHERE email = ?`,
+            [email]
+        );
+        if (!addressRows.length) {
+            throw new Error("Address not found for the buyer");
+        }
+        const addressId = addressRows[0].address_id;
+
+        await runAsync(
+            `UPDATE Address
+             SET street_num = ?, street_name = ?, zipcode = ?
+             WHERE address_id = ?`,
+            [street_num, street_name, zipcode, addressId]
+        );
+
+        await runAsync(
+            `UPDATE Credit_Cards
+             SET credit_card_num = ?, card_type = ?, expire_month = ?, expire_year = ?, security_code = ?
+             WHERE owner_email = ?`,
+            [credit_card_num, card_type, expire_month, expire_year, security_code, email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Buyer information updated successfully" });
+
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error("Error updating buyer:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// Seller profile update
+app.put("/update-seller", async (req, res) => {
+    const {
+        email,
+        password,
+        street_num,
+        street_name,
+        city,
+        zipcode,
+        state,
+        bank_routing_number,
+        bank_account_number
+    } = req.body;
+
+    try {
+        await runAsync("BEGIN TRANSACTION");
+
+        if (password && password.trim() !== "") {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await runAsync(
+                `UPDATE Users SET password_hash = ? WHERE email = ?`,
+                [hashedPassword, email]
+            );
+        }
+
+        await runAsync(
+            `INSERT OR REPLACE INTO Zipcode_Info (zipcode, city, state)
+             VALUES (?, ?, ?)`,
+            [zipcode, city, state]
+        );
+
+        const addressRows = await allAsync(
+            `SELECT business_address_id AS address_id FROM Sellers WHERE email = ?`,
+            [email]
+        );
+        if (!addressRows.length) {
+            throw new Error("Address not found for the seller");
+        }
+        const addressId = addressRows[0].address_id;
+
+        await runAsync(
+            `UPDATE Address
+             SET street_num = ?, street_name = ?, zipcode = ?
+             WHERE address_id = ?`,
+            [street_num, street_name, zipcode, addressId]
+        );
+
+        await runAsync(
+            `UPDATE Sellers
+             SET bank_routing_number = ?, bank_account_number = ?
+             WHERE email = ?`,
+            [bank_routing_number, bank_account_number, email]
+        );
+
+        await runAsync("COMMIT");
+        res.json({ message: "Seller information updated successfully" });
+
+    } catch (err) {
+        await runAsync("ROLLBACK");
+        console.error("Error updating seller:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Fetch All Active Product Listings
@@ -604,17 +735,18 @@ app.put('/update-product', (req, res) => {
 
 // Define the endpoint to add a product :: TODO: add product id
 app.post('/add-product', (req, res) => {
-    const { userEmail, product_title, product_name, category, product_description, product_price, quantity, status, listing_id } = req.body;
+    const { 
+        userEmail, 
+        product_title, 
+        product_name, 
+        category, 
+        product_description, 
+        product_price, 
+        quantity, status, 
+        listing_id 
+    } = req.body;
+    
     console.log(req.body);
-    console.log(userEmail);
-    console.log(product_title);
-    console.log(product_name);
-    console.log(category);
-    console.log(product_description);
-    console.log(product_price);
-    console.log(quantity);
-    console.log(status);
-    console.log(listing_id);
 
     const sql = `
         INSERT INTO product_listings (product_title, product_name, category, product_description, seller_email, product_price, quantity, status, listing_id)

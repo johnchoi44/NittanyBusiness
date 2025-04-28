@@ -6,8 +6,10 @@ import NavBar from "../components/NavBar";
 
 const Profile = () => {
     const { userEmail, userType } = useUser();
-    const [isEdit, setIsEdit] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
+    const [message, setMessage] = useState("");
     const [password, setPassword] = useState("");
+    const [rawStreet, setRawStreet] = useState("");
     const [userInfo, setUserInfo] = useState({
         name: "",
         street_num: "",
@@ -24,12 +26,14 @@ const Profile = () => {
         // Seller-only
         bank_routing_number: "",
         bank_account_number: "",
+        balance: ""
     });
 
     useEffect(() => {
         if (!userEmail || !userType) return;
         fetchUserInfo();
-    }, [userEmail, userType]);
+        setIsSaved(false);
+    }, [userEmail, userType, isSaved]);
 
     const fetchUserInfo = async () => {
         try {
@@ -38,22 +42,83 @@ const Profile = () => {
             });
             console.log(res.data);
             setUserInfo(res.data);
+            setRawStreet(res.data.street_num + " " + res.data.street_name);
         } catch (err) {
             console.error("Failed to load user info:", err);
         }
     };
 
+    const handleStreetBlur = () => {
+        const trimmed = rawStreet.trim();
+        const firstSpace = trimmed.indexOf(' ');
+        const streetNum = firstSpace > 0 ? trimmed.slice(0, firstSpace) : trimmed;
+        const streetName = firstSpace > 0 ? trimmed.slice(firstSpace + 1) : '';
+        setUserInfo(prev => ({
+            ...prev,
+            street_num: streetNum,
+            street_name: streetName,
+        }));
+        setRawStreet(trimmed); // normalize rawStreet
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setUserInfo((prev) => ({ ...prev, [name]: value }));
+        let formatted = value;
+
+        if (name === "credit_card_num") {
+            formatted = value
+                .replace(/\D/g, "")
+                .slice(0, 16)
+                .match(/.{1,4}/g)
+                ?.join("-") || "";
+        }
+        else if (name === "bank_routing_number") {
+            const digits = value.replace(/\D/g, "").slice(0, 9);
+            const parts = digits.match(/^(\d{1,4})(\d{1,4})?(\d{1})?$/);
+            formatted = parts
+                ? [parts[1], parts[2], parts[3]].filter(Boolean).join("-")
+                : digits;
+        }
+        else if (name === "security_code") {
+            formatted = value.replace(/\D/g, "").slice(0, 3);
+        }
+
+        console.log("CHANGE IN PROFILE: ", name, value);
+        setUserInfo(prev => ({ ...prev, [name]: formatted }));
+        console.log("AFTER CHANGE USER INFO: ", userInfo);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // DB updating end point call here (; need to create one in server.js)
-        console.log("Would send update:", { ...userInfo, password });
-    };
+        
+        if (userType === "buyer") {
+            try {
+                const res = await axios.put("http://localhost:8080/update-buyer", {
+                    email: userEmail,
+                    ...userInfo,
+                    password,
+                });
+                setMessage(res.data.message);
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+            }
+        }
+        else {
+            try {
+                const res = await axios.put("http://localhost:8080/update-seller", {
+                    email: userEmail,
+                    ...userInfo,
+                    password,
+                });
+                setMessage(res.data.message);
+            } catch (err) {
+                setMessage(err.response?.data?.message || "Error occurred.");
+            }
+        }
 
+        setPassword(""); // Reset password
+        setIsSaved(true);
+    };
 
     return (
         <div className="profile-container">
@@ -67,11 +132,9 @@ const Profile = () => {
                         <p id="profile-sub-title">{userEmail}</p>
                     </div>
                     <p />
-                    <button id="profile-btn" type="submit">Save Changes</button>
+                    <button id="profile-btn" type="submit" onClick={handleSubmit}>Save Changes</button>
                 </div>
-
-                <form className="profile-form" onSubmit={handleSubmit}>
-
+                <form className="profile-form">
                     <section className="profile-section">
                         <p className="profile-label">Password Information</p>
                         <p />
@@ -100,8 +163,9 @@ const Profile = () => {
                                 className="profile-input"
                                 type="text"
                                 name="street"
-                                placeholder={userInfo.street_name}
-                                onChange={handleChange}
+                                value={rawStreet}
+                                onChange={e => setRawStreet(e.target.value)}
+                                onBlur={handleStreetBlur}
                             />
                         </div>
                         <p />
@@ -111,7 +175,7 @@ const Profile = () => {
                                 className="profile-input"
                                 type="text"
                                 name="city"
-                                placeholder={userInfo.city}
+                                value={userInfo.city}
                                 onChange={handleChange}
                             />
                         </div>
@@ -133,7 +197,7 @@ const Profile = () => {
                                 className="profile-input"
                                 type="number"
                                 name="zipcode"
-                                placeholder={userInfo.zipcode}
+                                value={userInfo.zipcode}
                                 onChange={handleChange}
                             />
                         </div>
@@ -150,6 +214,7 @@ const Profile = () => {
                             <div>
                                 <p className="profile-sub-label">Card Type</p>
                                 <select
+                                    name="card_type"
                                     onChange={handleChange}
                                     required
                                 >
@@ -165,8 +230,10 @@ const Profile = () => {
                                 <p className="profile-sub-label">Credit Card Number</p>
                                 <input
                                     className="profile-input"
-                                    name="credit_card"
-                                    placeholder={userInfo.credit_card_num}
+                                    name="credit_card_num"
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={userInfo.credit_card_num}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -175,8 +242,8 @@ const Profile = () => {
                                 <p className="profile-sub-label">CVV</p>
                                 <input
                                     className="profile-input"
-                                    name="credit_card"
-                                    placeholder={userInfo.security_code}
+                                    name="security_code"
+                                    value={userInfo.security_code}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -196,7 +263,7 @@ const Profile = () => {
                                 <input
                                     className="profile-input"
                                     name="bank_routing_number"
-                                    placeholder={userInfo.bank_routing_number}
+                                    value={userInfo.bank_routing_number}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -207,7 +274,7 @@ const Profile = () => {
                                 <input
                                     className="profile-input"
                                     name="bank_account_number"
-                                    placeholder={userInfo.bank_account_number}
+                                    value={userInfo.bank_account_number}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -217,7 +284,7 @@ const Profile = () => {
                                 <input
                                     className="profile-input"
                                     name="balance"
-                                    value={String(userInfo.balance)}
+                                    value={"$ " + String(userInfo.balance)}
                                     disabled
                                 />
                             </div>
