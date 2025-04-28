@@ -13,12 +13,12 @@ const PORT = process.env.PORT || 8080;
 
 // == Helper functions ==
 function runAsync(sql, params = []) {
-	return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         db.run(sql, params, function (err) {
             if (err) return reject(err);
             resolve(this);
         });
-	});
+    });
 }
 
 function allAsync(sql, params = []) {
@@ -33,7 +33,7 @@ function allAsync(sql, params = []) {
 
 // Register
 app.post("/register", async (req, res) => {
-	const {
+    const {
         email,
         password,
         user_type,
@@ -41,74 +41,74 @@ app.post("/register", async (req, res) => {
         address: { street, city, zipcode, state = "" } = {},
         credit_card,
         bank,
-	} = req.body;
+    } = req.body;
 
-	try {
+    try {
         const hashed = await bcrypt.hash(password, 10);
         await runAsync(
             `INSERT INTO users (email, password_hash, user_type)
             VALUES (?, ?, ?)`,
             [email, hashed, user_type]
-	);
+        );
 
-	await runAsync(
-		`INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)
+        await runAsync(
+            `INSERT OR IGNORE INTO Zipcode_Info (zipcode, city, state)
 		VALUES (?, ?, ?)`,
-		[zipcode, city, state]
-	);
+            [zipcode, city, state]
+        );
 
-	const addressId = randomUUID();
-	await runAsync(
-		`INSERT INTO Address (address_id, zipcode, street_num, street_name)
+        const addressId = randomUUID();
+        await runAsync(
+            `INSERT INTO Address (address_id, zipcode, street_num, street_name)
 		VALUES (?, ?, ?, ?)`,
-		[addressId, zipcode, "", street]
-	);
+            [addressId, zipcode, "", street]
+        );
 
-	if (user_type === "buyer") {
-		// a) Buyer table
-		await runAsync(
-		`INSERT INTO Buyer (email, business_name, buyer_address_id)
+        if (user_type === "buyer") {
+            // a) Buyer table
+            await runAsync(
+                `INSERT INTO Buyer (email, business_name, buyer_address_id)
 		VALUES (?, ?, ?)`,
-		[email, business_name, addressId]
-		);
+                [email, business_name, addressId]
+            );
 
-		await runAsync(
-		`INSERT INTO Credit_Cards 
+            await runAsync(
+                `INSERT INTO Credit_Cards 
             (credit_card_num, card_type, expire_month, expire_year, security_code, owner_email)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		[
-            credit_card.credit_card_num,
-            credit_card.card_type,
-            credit_card.expire_month,
-            credit_card.expire_year,
-            credit_card.security_code,
-            email,
-		]
-		);
-	} else if (user_type === "seller") {
-		await runAsync(
-		`INSERT INTO Sellers
+                [
+                    credit_card.credit_card_num,
+                    credit_card.card_type,
+                    credit_card.expire_month,
+                    credit_card.expire_year,
+                    credit_card.security_code,
+                    email,
+                ]
+            );
+        } else if (user_type === "seller") {
+            await runAsync(
+                `INSERT INTO Sellers
 			(email, business_name, business_address_id, bank_routing_number, bank_account_number, balance)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		[
-			email,
-			business_name,
-			addressId,
-			bank.bank_routing_number,
-			bank.bank_account_number,
-			bank.balance,
-		]
-		);
-	}
+                [
+                    email,
+                    business_name,
+                    addressId,
+                    bank.bank_routing_number,
+                    bank.bank_account_number,
+                    bank.balance,
+                ]
+            );
+        }
 
-	res.status(201).json({ message: "User successfully registered", user_id: email, user_type });
-	} catch (err) {
-	if (err.message.includes("UNIQUE constraint")) {
-		return res.status(409).json({ message: "Email already exists" });
-	}
+        res.status(201).json({ message: "User successfully registered", user_id: email, user_type });
+    } catch (err) {
+        if (err.message.includes("UNIQUE constraint")) {
+            return res.status(409).json({ message: "Email already exists" });
+        }
         console.error(err);
         res.status(500).json({ error: err.message });
-	}
+    }
 });
 
 // Login
@@ -123,7 +123,7 @@ app.post("/login", (req, res) => {
         try {
             const match = await bcrypt.compare(password, user.password_hash);
             console.log("Password match result:", match); // Debug log
-            
+
             if (!match) {
                 return res.status(401).json({ message: "Invalid password" });
             }
@@ -133,6 +133,76 @@ app.post("/login", (req, res) => {
             console.error("Error comparing passwords:", error);  // Catch bcrypt errors
             return res.status(500).json({ error: "Internal server error" });
         }
+    });
+});
+
+// Fetch user information
+// server.js
+
+app.get("/user-info", (req, res) => {
+    const { email, type } = req.query;
+    if (!email || !type) {
+        return res.status(400).json({ error: "Missing `email` or `type`" });
+    }
+
+    let sql;
+    const params = [email];
+
+    if (type === "buyer") {
+        sql = `
+        SELECT
+            u.email,
+            b.business_name   AS name,
+            a.street_num,
+            a.street_name,
+            a.zipcode,
+            z.city,
+            z.state,
+            c.credit_card_num,
+            c.card_type,
+            c.expire_month,
+            c.expire_year,
+            c.security_code
+        FROM Users AS u
+        JOIN Buyer AS b
+            ON b.email = u.email
+        JOIN Address AS a
+            ON a.address_id = b.buyer_address_id
+        JOIN Zipcode_Info AS z
+            ON z.zipcode = a.zipcode
+        LEFT JOIN Credit_Cards AS c
+            ON c.owner_email = u.email
+        WHERE u.email = ?
+        `;
+    } else if (type === "seller") {
+        sql = `
+        SELECT
+            u.email,
+            s.business_name   AS name,
+            a.street_num,
+            a.street_name,
+            a.zipcode,
+            z.city,
+            z.state,
+            s.bank_routing_number,
+            s.bank_account_number
+        FROM Users AS u
+        JOIN Sellers AS s
+            ON s.email = u.email
+        JOIN Address AS a
+            ON a.address_id = s.business_address_id
+        JOIN Zipcode_Info AS z
+            ON z.zipcode = a.zipcode
+        WHERE u.email = ?
+        `;
+    } else {
+        return res.status(400).json({ error: "Invalid `type`" });
+    }
+
+    db.get(sql, params, (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: "User not found" });
+        res.json(row);
     });
 });
 
@@ -158,7 +228,7 @@ app.get("/listings-for-seller", (req, res) => {
     const seller_email = req.query.userEmail;
     const query = 'SELECT * FROM Product_Listings WHERE seller_email = ?';
     console.log(req.query)
-    console.log("EMAIL: ",seller_email);
+    console.log("EMAIL: ", seller_email);
     db.all(query, [seller_email], async (err, listings) => {
         if (err) {
             console.error("Error fetching listings");
@@ -333,8 +403,8 @@ app.get("/credit-cards", (req, res) => {
     `;
     db.all(sql, [owner], (err, rows) => {
         if (err) {
-        console.error("Error fetching credit cards:", err);
-        return res.status(500).json({ error: err.message });
+            console.error("Error fetching credit cards:", err);
+            return res.status(500).json({ error: err.message });
         }
         return res.json({ cards: rows });
     });
@@ -452,52 +522,6 @@ app.post("/helpdesk/update-user", (req, res) => {
     });
 });
 
-// Fetch the UserType of a given user
-app.get("/get-user-type", (req, res) => {
-    const user_email = req.query.userEmail;
-    console.log(user_email);
-    const roles = [];
-
-    const queryBuyer = 'SELECT 1 FROM Buyer WHERE email = ? LIMIT 1';
-    const querySeller = 'SELECT 1 FROM Sellers WHERE email = ? LIMIT 1';
-    const queryHelpDesk = 'SELECT 1 FROM Helpdesk WHERE email = ? LIMIT 1';
-
-    db.get(queryBuyer, [user_email], (err, rowBuyer) => {
-        if (err) {
-            console.error("Buyer query error:", err);
-            return res.status(500).send("Database error");
-        }
-        if (rowBuyer) {
-            console.log("User in Buyers table");
-            roles.push("buyer");
-        }
-
-        db.get(querySeller, [user_email], (err, rowSeller) => {
-            if (err) {
-                console.error("Seller query error:", err);
-                return res.status(500).send("Database error");
-            }
-            if (rowSeller) {
-                console.log("User in Sellers table");
-                roles.push("seller");
-            }
-
-            db.get(queryHelpDesk, [user_email], (err, rowHelpdesk) => {
-                if (err) {
-                    console.error("Helpdesk query error:", err);
-                    return res.status(500).send("Database error");
-                }
-                if (rowHelpdesk) {
-                    console.log("User in Helpdesk table");
-                    roles.push("helpdesk");
-                }
-    
-                res.json({ user_email, roles });
-            });
-        });
-    });
-});
-
 // fetch the orders for a user email given userType
 app.get("/get-orders-by-type", (req, res) => {
     const userType = req.query.userType;
@@ -564,7 +588,7 @@ app.put('/update-product', (req, res) => {
     `;
 
     // Run the SQL update query
-    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function(err) {
+    db.run(sql, [product_title, product_name, category, product_description, product_price, status, listing_id], function (err) {
         if (err) {
             return res.status(500).json({ message: 'Error updating product', error: err.message });
         }
@@ -597,7 +621,7 @@ app.post('/add-product', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    db.run(sql, [product_title, product_name, category, product_description, userEmail, product_price, quantity, status, listing_id], function(err) {
+    db.run(sql, [product_title, product_name, category, product_description, userEmail, product_price, quantity, status, listing_id], function (err) {
         if (err) {
             return res.status(500).json({ message: 'Error adding product', error: err.message });
         }
